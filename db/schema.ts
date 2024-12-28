@@ -12,9 +12,9 @@ export const users = pgTable("users", {
   dateOfBirth: timestamp("date_of_birth"),
   nationality: text("nationality"),
   location: text("location"),
+  balance: decimal("balance", { precision: 10, scale: 2 }).default('0'),
   baseSalaryPerHour: decimal("base_salary_per_hour", { precision: 10, scale: 2 }),
   basePaymentPerHour: decimal("base_payment_per_hour", { precision: 10, scale: 2 }),
-  balance: decimal("balance", { precision: 10, scale: 2 }).default('0'),
   paymentHistory: jsonb("payment_history").default('[]'),
   isActive: boolean("is_active").default(true),
 });
@@ -25,6 +25,7 @@ export const insertUserSchema = createInsertSchema(users, {
   role: z.enum(["admin", "teacher", "student"]),
   baseSalaryPerHour: z.number().optional(),
   basePaymentPerHour: z.number().optional(),
+  balance: z.number().optional(),
 });
 
 export const selectUserSchema = createSelectSchema(users);
