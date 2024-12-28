@@ -22,13 +22,15 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Users, BookOpen, Calendar } from "lucide-react";
+import EditSubjectModal from "@/components/modals/EditSubjectModal";
 
 type Subject = {
   id: number;
   name: string;
-  duration: number;
-  price: number;
   sessionsPerWeek: number;
+  durations: number[];
+  pricePerDuration: Record<string, number>;
+  isActive: boolean;
 };
 
 type Class = {
@@ -69,6 +71,8 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("subjects");
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [isEditSubjectModalOpen, setIsEditSubjectModalOpen] = useState(false);
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -196,6 +200,11 @@ export default function AdminDashboard() {
     },
   });
 
+  const handleSubjectRowClick = (subject: Subject) => {
+    setSelectedSubject(subject);
+    setIsEditSubjectModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -251,39 +260,28 @@ export default function AdminDashboard() {
                             </FormItem>
                           )}
                         />
+                        {/* Added durations field */}
                         <FormField
                           control={addSubjectForm.control}
-                          name="duration"
+                          name="durations"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Duration (minutes)</FormLabel>
+                              <FormLabel>Durations (minutes, comma-separated)</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseInt(e.target.value))
-                                  }
-                                />
+                                <Input {...field} type="text" />
                               </FormControl>
                             </FormItem>
                           )}
                         />
+                        {/* Added pricePerDuration field */}
                         <FormField
                           control={addSubjectForm.control}
-                          name="price"
+                          name="pricePerDuration"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Price</FormLabel>
+                              <FormLabel>Price per Duration (e.g., "60":100, "90":150)</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseFloat(e.target.value))
-                                  }
-                                />
+                                <Input {...field} type="text" />
                               </FormControl>
                             </FormItem>
                           )}
@@ -317,24 +315,43 @@ export default function AdminDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Price</TableHead>
                       <TableHead>Sessions/Week</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {subjects?.map((subject) => (
-                      <TableRow key={subject.id}>
+                      <TableRow
+                        key={subject.id}
+                        onClick={() => handleSubjectRowClick(subject)}
+                        className="cursor-pointer hover:bg-gray-50"
+                      >
                         <TableCell>{subject.name}</TableCell>
-                        <TableCell>{subject.duration} min</TableCell>
-                        <TableCell>${subject.price}</TableCell>
                         <TableCell>{subject.sessionsPerWeek}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            subject.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {subject.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
+
+            <EditSubjectModal
+              subject={selectedSubject}
+              isOpen={isEditSubjectModalOpen}
+              onClose={() => {
+                setIsEditSubjectModalOpen(false);
+                setSelectedSubject(null);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="classes">

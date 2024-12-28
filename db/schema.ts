@@ -19,7 +19,6 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
 });
 
-// Create schema for user input validation
 export const insertUserSchema = createInsertSchema(users, {
   dateOfBirth: z.string().optional().transform(val => val ? new Date(val) : undefined),
   role: z.enum(["admin", "teacher", "student"]),
@@ -42,6 +41,18 @@ export const subjects = pgTable("subjects", {
   pricePerDuration: jsonb("price_per_duration").default('{}'),
   isActive: boolean("is_active").default(true),
 });
+
+// Create schema for subject input validation
+export const insertSubjectSchema = createInsertSchema(subjects, {
+  durations: z.number().array(),
+  pricePerDuration: z.record(z.string(), z.number()),
+  isActive: z.boolean().optional(),
+});
+
+export const selectSubjectSchema = createSelectSchema(subjects);
+
+export type Subject = typeof subjects.$inferSelect;
+export type InsertSubject = typeof subjects.$inferInsert;
 
 export const teacherSubjects = pgTable("teacher_subjects", {
   id: serial("id").primaryKey(),
@@ -129,8 +140,6 @@ export const classStudentsRelations = relations(classStudents, ({ one }) => ({
 }));
 
 // Types
-export type Subject = typeof subjects.$inferSelect;
-export type InsertSubject = typeof subjects.$inferInsert;
 export type Class = typeof classes.$inferSelect;
 export type InsertClass = typeof classes.$inferInsert;
 export type Appointment = typeof appointments.$inferSelect;

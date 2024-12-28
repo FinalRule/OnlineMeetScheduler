@@ -126,6 +126,38 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put("/api/subjects/:id", requireAuth, async (req, res) => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).send("Unauthorized");
+    }
+
+    try {
+      const subjectId = parseInt(req.params.id);
+      const { name, sessionsPerWeek, durations, pricePerDuration, isActive } = req.body;
+
+      const [updatedSubject] = await db
+        .update(subjects)
+        .set({
+          name,
+          sessionsPerWeek,
+          durations: durations || [],
+          pricePerDuration: pricePerDuration || {},
+          isActive,
+        })
+        .where(eq(subjects.id, subjectId))
+        .returning();
+
+      if (!updatedSubject) {
+        return res.status(404).send("Subject not found");
+      }
+
+      res.json(updatedSubject);
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      res.status(500).send("Failed to update subject");
+    }
+  });
+
   // Class routes
   app.get("/api/classes", requireAuth, async (req, res) => {
     try {
