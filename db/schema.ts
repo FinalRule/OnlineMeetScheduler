@@ -99,11 +99,14 @@ export const appointmentsRelations = relations(appointments, ({ many }) => ({
   notifications: many(notifications),
 }));
 
-
 export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 export type Subject = typeof subjects.$inferSelect;
+export type InsertSubject = typeof subjects.$inferInsert;
 export type Class = typeof classes.$inferSelect;
+export type InsertClass = typeof classes.$inferInsert;
 export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = typeof appointments.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 
