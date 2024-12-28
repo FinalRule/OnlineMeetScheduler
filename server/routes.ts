@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { db } from "@db";
 import { subjects, classes, appointments, teacherSubjects, users } from "@db/schema";
 import { eq, and } from "drizzle-orm";
+import { createMeeting } from "./utils/google-meet";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -43,7 +44,7 @@ export function registerRoutes(app: Express): Server {
     if (req.user?.role !== "admin") {
       return res.status(403).send("Unauthorized");
     }
-    
+
     const {
       subjectId,
       teacherId,
@@ -112,6 +113,53 @@ export function registerRoutes(app: Express): Server {
       .returning();
 
     res.json(updated[0]);
+  });
+
+  // Update appointment creation to include Google Meet link
+  app.post("/api/appointments", async (req, res) => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).send("Unauthorized");
+    }
+
+    const { classId, date, duration } = req.body;
+
+    try {
+      // Get class details for the meeting title
+      const [classDetails] = await db
+        .select()
+        .from(classes)
+        .where(eq(classes.id, classId))
+        .limit(1);
+
+      // Get subject name
+      const [subject] = await db
+        .select()
+        .from(subjects)
+        .where(eq(subjects.id, classDetails.subjectId))
+        .limit(1);
+
+      // Create Google Meet
+      const meetLink = await createMeeting(
+        `${subject.name} Class`,
+        new Date(date),
+        duration
+      );
+
+      const [newAppointment] = await db
+        .insert(appointments)
+        .values({
+          classId,
+          date,
+          duration,
+          meetLink,
+        })
+        .returning();
+
+      res.json(newAppointment);
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      res.status(500).send("Failed to create appointment");
+    }
   });
 
   const httpServer = createServer(app);

@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, GraduationCap } from "lucide-react";
+import { Calendar, GraduationCap, Video } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 
 type Appointment = {
@@ -65,6 +65,10 @@ export default function StudentDashboard() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3);
 
+  const joinMeeting = (meetLink: string) => {
+    window.open(meetLink, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -100,12 +104,15 @@ export default function StudentDashboard() {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(apt.meetLink, "_blank")}
-                    >
-                      Join Meet
-                    </Button>
+                    {apt.meetLink && (
+                      <Button
+                        onClick={() => joinMeeting(apt.meetLink)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Video className="h-4 w-4 mr-2" />
+                        Join Meet
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -159,6 +166,7 @@ export default function StudentDashboard() {
                   <TableHead>Subject</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Attendance</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -176,6 +184,18 @@ export default function StudentDashboard() {
                       <TableCell>{apt.duration} min</TableCell>
                       <TableCell>
                         {apt.studentAttendance ? "Present" : "Absent"}
+                      </TableCell>
+                      <TableCell>
+                        {apt.meetLink && new Date(apt.date) > new Date() && (
+                          <Button
+                            size="sm"
+                            onClick={() => joinMeeting(apt.meetLink)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Video className="h-4 w-4 mr-2" />
+                            Join
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

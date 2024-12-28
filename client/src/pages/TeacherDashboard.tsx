@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, CheckCircle, XCircle, Video } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 
 type Appointment = {
@@ -56,6 +56,10 @@ export default function TeacherDashboard() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3);
 
+  const joinMeeting = (meetLink: string) => {
+    window.open(meetLink, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -86,12 +90,15 @@ export default function TeacherDashboard() {
                         Duration: {apt.duration} minutes
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(apt.meetLink, "_blank")}
-                    >
-                      Join Meet
-                    </Button>
+                    {apt.meetLink && (
+                      <Button
+                        onClick={() => joinMeeting(apt.meetLink)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Video className="h-4 w-4 mr-2" />
+                        Join Meet
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -109,6 +116,7 @@ export default function TeacherDashboard() {
                     <TableHead>Date</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Attendance</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -123,6 +131,18 @@ export default function TeacherDashboard() {
                           <CheckCircle className="h-5 w-5 text-green-500" />
                         ) : (
                           <XCircle className="h-5 w-5 text-red-500" />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {apt.meetLink && new Date(apt.date) > new Date() && (
+                          <Button
+                            size="sm"
+                            onClick={() => joinMeeting(apt.meetLink)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Video className="h-4 w-4 mr-2" />
+                            Join
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
