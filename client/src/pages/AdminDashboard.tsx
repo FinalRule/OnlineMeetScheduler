@@ -606,7 +606,7 @@ export default function AdminDashboard() {
                         <TableCell className="capitalize">{user.role}</TableCell>
                         <TableCell>{user.location || "-"}</TableCell>
                         <TableCell>
-                          {user.basePayment
+                          {typeof user.basePayment === 'number'
                             ? `$${user.basePayment.toFixed(2)}/hr`
                             : "-"}
                         </TableCell>
