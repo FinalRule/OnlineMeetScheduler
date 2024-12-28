@@ -60,28 +60,47 @@ export function registerRoutes(app: Express): Server {
       return res.status(403).send("Unauthorized");
     }
 
-    const allUsers = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        name: users.name,
-        role: users.role,
-        dateOfBirth: users.dateOfBirth,
-        nationality: users.nationality,
-        location: users.location,
-        baseSalaryPerHour: users.baseSalaryPerHour,
-        basePaymentPerHour: users.basePaymentPerHour,
-      })
-      .from(users)
-      .where(or(eq(users.role, "teacher"), eq(users.role, "student")));
+    try {
+      const allUsers = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          role: users.role,
+          dateOfBirth: users.dateOfBirth,
+          nationality: users.nationality,
+          location: users.location,
+          baseSalaryPerHour: users.baseSalaryPerHour,
+          basePaymentPerHour: users.basePaymentPerHour,
+        })
+        .from(users)
+        .where(or(eq(users.role, "teacher"), eq(users.role, "student")));
 
-    res.json(allUsers);
+      res.json(allUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).send("Failed to fetch users");
+    }
   });
 
   // Subject routes
   app.get("/api/subjects", requireAuth, async (req, res) => {
-    const allSubjects = await db.select().from(subjects);
-    res.json(allSubjects);
+    try {
+      const allSubjects = await db
+        .select({
+          id: subjects.id,
+          name: subjects.name,
+          sessionsPerWeek: subjects.sessionsPerWeek,
+          durations: subjects.durations,
+          pricePerDuration: subjects.pricePerDuration,
+          isActive: subjects.isActive,
+        })
+        .from(subjects);
+      res.json(allSubjects);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      res.status(500).send("Failed to fetch subjects");
+    }
   });
 
   app.post("/api/subjects", requireAuth, async (req, res) => {
@@ -89,46 +108,66 @@ export function registerRoutes(app: Express): Server {
       return res.status(403).send("Unauthorized");
     }
 
-    const { name, description, sessionsPerWeek, durations, pricePerDuration } = req.body;
-    const [newSubject] = await db
-      .insert(subjects)
-      .values({ 
-        name, 
-        description, 
-        sessionsPerWeek,
-        durations: durations || [],
-        pricePerDuration: pricePerDuration || {}
-      })
-      .returning();
-    res.json(newSubject);
+    try {
+      const { name, sessionsPerWeek, durations, pricePerDuration } = req.body;
+      const [newSubject] = await db
+        .insert(subjects)
+        .values({ 
+          name, 
+          sessionsPerWeek,
+          durations: durations || [],
+          pricePerDuration: pricePerDuration || {}
+        })
+        .returning();
+      res.json(newSubject);
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      res.status(500).send("Failed to create subject");
+    }
   });
 
   // Class routes
   app.get("/api/classes", requireAuth, async (req, res) => {
-    const userClassesQuery = db
-      .select()
-      .from(classes);
-
-    if (req.user.role === "teacher") {
-      userClassesQuery.where(eq(classes.teacherId, req.user.id));
-    } else if (req.user.role === "student") {
-      const studentClasses = await db
+    try {
+      const userClassesQuery = db
         .select({
-          classId: classStudents.classId
+          id: classes.id,
+          classId: classes.classId,
+          subjectId: classes.subjectId,
+          teacherId: classes.teacherId,
+          startDate: classes.startDate,
+          endDate: classes.endDate,
+          weekDays: classes.weekDays,
+          timePerDay: classes.timePerDay,
+          durationPerDay: classes.durationPerDay,
+          isActive: classes.isActive,
         })
-        .from(classStudents)
-        .where(eq(classStudents.studentId, req.user.id));
+        .from(classes);
 
-      const classIds = studentClasses.map(c => c.classId);
-      if (classIds.length) {
-        userClassesQuery.where(inArray(classes.id, classIds));
-      } else {
-        return res.json([]);
+      if (req.user.role === "teacher") {
+        userClassesQuery.where(eq(classes.teacherId, req.user.id));
+      } else if (req.user.role === "student") {
+        const studentClasses = await db
+          .select({
+            classId: classStudents.classId
+          })
+          .from(classStudents)
+          .where(eq(classStudents.studentId, req.user.id));
+
+        const classIds = studentClasses.map(c => c.classId);
+        if (classIds.length) {
+          userClassesQuery.where(inArray(classes.id, classIds));
+        } else {
+          return res.json([]);
+        }
       }
-    }
 
-    const userClasses = await userClassesQuery;
-    res.json(userClasses);
+      const userClasses = await userClassesQuery;
+      res.json(userClasses);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      res.status(500).send("Failed to fetch classes");
+    }
   });
 
   // Appointments routes
