@@ -25,28 +25,32 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <Switch>
-        {user.role === "admin" && (
-          <>
-            <Route path="/" component={AdminDashboard} />
-            <Route path="/admin" component={AdminDashboard} />
-            <Route path="/teacher" component={TeacherDashboard} />
-            <Route path="/student" component={StudentDashboard} />
-          </>
-        )}
-        {user.role === "teacher" && (
-          <>
-            <Route path="/" component={TeacherDashboard} />
-            <Route path="/teacher" component={TeacherDashboard} />
-          </>
-        )}
-        {user.role === "student" && (
-          <>
-            <Route path="/" component={StudentDashboard} />
-            <Route path="/student" component={StudentDashboard} />
-          </>
-        )}
-      </Switch>
+      <main className="py-8">
+        <Switch>
+          {user.role === "admin" && (
+            <>
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/subjects" component={AdminDashboard} />
+              <Route path="/admin/schedule" component={AdminDashboard} />
+              <Route path="/" component={AdminDashboard} />
+            </>
+          )}
+          {user.role === "teacher" && (
+            <>
+              <Route path="/teacher" component={TeacherDashboard} />
+              <Route path="/teacher/classes" component={TeacherDashboard} />
+              <Route path="/" component={TeacherDashboard} />
+            </>
+          )}
+          {user.role === "student" && (
+            <>
+              <Route path="/student" component={StudentDashboard} />
+              <Route path="/student/classes" component={StudentDashboard} />
+              <Route path="/" component={StudentDashboard} />
+            </>
+          )}
+        </Switch>
+      </main>
     </div>
   );
 }
