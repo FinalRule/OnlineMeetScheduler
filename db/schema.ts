@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
@@ -36,17 +36,30 @@ export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   sessionsPerWeek: integer("sessions_per_week").notNull(),
-  description: text("description"),
   durations: jsonb("durations").default('[]'),
   pricePerDuration: jsonb("price_per_duration").default('{}'),
   isActive: boolean("is_active").default(true),
 });
 
-// Create schema for subject input validation
+// Update the subject schema to properly handle the form data
 export const insertSubjectSchema = createInsertSchema(subjects, {
-  durations: z.number().array(),
-  pricePerDuration: z.record(z.string(), z.number()),
-  isActive: z.boolean().optional(),
+  name: z.string().min(1, "Name is required"),
+  sessionsPerWeek: z.number().min(1, "Must have at least 1 session per week"),
+  durations: z.union([
+    z.string().transform(val => val.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d))),
+    z.array(z.number())
+  ]),
+  pricePerDuration: z.union([
+    z.string().transform(val => {
+      try {
+        return JSON.parse(`{${val}}`);
+      } catch {
+        return {};
+      }
+    }),
+    z.record(z.string(), z.number())
+  ]),
+  isActive: z.boolean().optional().default(true),
 });
 
 export const selectSubjectSchema = createSelectSchema(subjects);
@@ -139,12 +152,9 @@ export const classStudentsRelations = relations(classStudents, ({ one }) => ({
   }),
 }));
 
-// Types
 export type Class = typeof classes.$inferSelect;
 export type InsertClass = typeof classes.$inferInsert;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = typeof appointments.$inferInsert;
 export type ClassStudent = typeof classStudents.$inferSelect;
 export type InsertClassStudent = typeof classStudents.$inferInsert;
-
-// Schemas

@@ -23,6 +23,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Users, BookOpen, Calendar } from "lucide-react";
 import EditSubjectModal from "@/components/modals/EditSubjectModal";
+import { insertSubjectSchema } from "@db/schema";
+import type { InsertSubject } from "@db/schema";
 
 type Subject = {
   id: number;
@@ -108,34 +110,15 @@ export default function AdminDashboard() {
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: Subject) => {
-      // Format the data before sending
-      const durationsArray = typeof data.durations === 'string'
-        ? data.durations.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d))
-        : data.durations;
-
-      let priceObject = {};
-      if (typeof data.pricePerDuration === 'string') {
-        try {
-          priceObject = JSON.parse(`{${data.pricePerDuration}}`);
-        } catch (e) {
-          console.error('Error parsing price per duration:', e);
-        }
-      } else {
-        priceObject = data.pricePerDuration;
+      const result = insertSubjectSchema.safeParse(data);
+      if (!result.success) {
+        throw new Error(result.error.issues.map(i => i.message).join(", "));
       }
-
-      const formattedData = {
-        name: data.name,
-        sessionsPerWeek: data.sessionsPerWeek,
-        durations: durationsArray,
-        pricePerDuration: priceObject,
-        isActive: data.isActive
-      };
 
       const response = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formattedData),
+        body: JSON.stringify(result.data),
         credentials: "include",
       });
 

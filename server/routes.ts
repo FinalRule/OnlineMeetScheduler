@@ -7,6 +7,7 @@ import { eq, and, inArray, or } from "drizzle-orm";
 import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
 import { z } from "zod";
+import { insertSubjectSchema } from "@db/schema";
 
 const updateProfileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -14,6 +15,15 @@ const updateProfileSchema = z.object({
   nationality: z.string().optional(),
   location: z.string().optional(),
 });
+
+const insertSubjectSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  sessionsPerWeek: z.number().int().min(0, "Sessions per week must be non-negative"),
+  durations: z.array(z.string()).default([]), //assuming durations are strings
+  pricePerDuration: z.object({}).default({}), //assuming pricePerDuration is an object
+  isActive: z.boolean().default(true),
+});
+
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -109,21 +119,14 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const { name, sessionsPerWeek, durations, pricePerDuration } = req.body;
-
-      // Validate and transform the data
-      const durationsArray = Array.isArray(durations) ? durations : [];
-      const priceObject = typeof pricePerDuration === 'object' ? pricePerDuration : {};
+      const result = insertSubjectSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).send(result.error.issues.map(i => i.message).join(", "));
+      }
 
       const [newSubject] = await db
         .insert(subjects)
-        .values({ 
-          name, 
-          sessionsPerWeek,
-          durations: durationsArray,
-          pricePerDuration: priceObject,
-          isActive: true
-        })
+        .values(result.data)
         .returning();
 
       res.json(newSubject);
