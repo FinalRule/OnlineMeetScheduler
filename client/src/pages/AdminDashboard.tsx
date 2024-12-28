@@ -108,14 +108,28 @@ export default function AdminDashboard() {
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: Subject) => {
+      // Format the data before sending
+      const durationsArray = typeof data.durations === 'string'
+        ? data.durations.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d))
+        : data.durations;
+
+      let priceObject = {};
+      if (typeof data.pricePerDuration === 'string') {
+        try {
+          priceObject = JSON.parse(`{${data.pricePerDuration}}`);
+        } catch (e) {
+          console.error('Error parsing price per duration:', e);
+        }
+      } else {
+        priceObject = data.pricePerDuration;
+      }
+
       const formattedData = {
-        ...data,
-        durations: typeof data.durations === 'string' 
-          ? data.durations.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d))
-          : data.durations,
-        pricePerDuration: typeof data.pricePerDuration === 'string'
-          ? JSON.parse(`{${data.pricePerDuration}}`)
-          : data.pricePerDuration
+        name: data.name,
+        sessionsPerWeek: data.sessionsPerWeek,
+        durations: durationsArray,
+        pricePerDuration: priceObject,
+        isActive: data.isActive
       };
 
       const response = await fetch("/api/subjects", {
@@ -215,8 +229,8 @@ export default function AdminDashboard() {
                             <FormItem>
                               <FormLabel>Durations (minutes, comma-separated)</FormLabel>
                               <FormControl>
-                                <Input 
-                                  {...field} 
+                                <Input
+                                  {...field}
                                   value={Array.isArray(field.value) ? field.value.join(', ') : field.value}
                                   onChange={(e) => {
                                     const value = e.target.value;
@@ -234,9 +248,9 @@ export default function AdminDashboard() {
                             <FormItem>
                               <FormLabel>Price per Duration (e.g., "60": 100, "90": 150)</FormLabel>
                               <FormControl>
-                                <Input 
-                                  {...field} 
-                                  value={typeof field.value === 'object' 
+                                <Input
+                                  {...field}
+                                  value={typeof field.value === 'object'
                                     ? Object.entries(field.value).map(([k, v]) => `"${k}": ${v}`).join(', ')
                                     : field.value
                                   }

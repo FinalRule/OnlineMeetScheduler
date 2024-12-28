@@ -110,15 +110,22 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const { name, sessionsPerWeek, durations, pricePerDuration } = req.body;
+
+      // Validate and transform the data
+      const durationsArray = Array.isArray(durations) ? durations : [];
+      const priceObject = typeof pricePerDuration === 'object' ? pricePerDuration : {};
+
       const [newSubject] = await db
         .insert(subjects)
         .values({ 
           name, 
           sessionsPerWeek,
-          durations: durations || [],
-          pricePerDuration: pricePerDuration || {}
+          durations: durationsArray,
+          pricePerDuration: priceObject,
+          isActive: true
         })
         .returning();
+
       res.json(newSubject);
     } catch (error) {
       console.error('Error creating subject:', error);
@@ -135,13 +142,17 @@ export function registerRoutes(app: Express): Server {
       const subjectId = parseInt(req.params.id);
       const { name, sessionsPerWeek, durations, pricePerDuration, isActive } = req.body;
 
+      // Validate and transform the data
+      const durationsArray = Array.isArray(durations) ? durations : [];
+      const priceObject = typeof pricePerDuration === 'object' ? pricePerDuration : {};
+
       const [updatedSubject] = await db
         .update(subjects)
         .set({
           name,
           sessionsPerWeek,
-          durations: durations || [],
-          pricePerDuration: pricePerDuration || {},
+          durations: durationsArray,
+          pricePerDuration: priceObject,
           isActive,
         })
         .where(eq(subjects.id, subjectId))
