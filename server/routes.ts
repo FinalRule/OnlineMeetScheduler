@@ -6,6 +6,14 @@ import { subjects, classes, appointments, teacherSubjects, users, notifications 
 import { eq, and, inArray, or } from "drizzle-orm";
 import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
+import { z } from "zod";
+
+const updateProfileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  dateOfBirth: z.string().optional(),
+  nationality: z.string().optional(),
+  location: z.string().optional(),
+});
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -17,6 +25,34 @@ export function registerRoutes(app: Express): Server {
     }
     next();
   };
+
+  // Add profile update route
+  app.put("/api/user/profile", requireAuth, async (req, res) => {
+    try {
+      const result = updateProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).send(result.error.issues.map(i => i.message).join(", "));
+      }
+
+      const { name, dateOfBirth, nationality, location } = result.data;
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          name,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          nationality,
+          location,
+        })
+        .where(eq(users.id, req.user.id))
+        .returning();
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      res.status(500).send("Failed to update profile");
+    }
+  });
 
   // User routes
   app.get("/api/users", requireAuth, async (req, res) => {
