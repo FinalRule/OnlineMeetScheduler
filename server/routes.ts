@@ -18,6 +18,30 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
+  // User routes
+  app.get("/api/users", requireAuth, async (req, res) => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).send("Unauthorized");
+    }
+
+    const allUsers = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        name: users.name,
+        role: users.role,
+        dateOfBirth: users.dateOfBirth,
+        nationality: users.nationality,
+        location: users.location,
+        basePayment: users.basePayment,
+      })
+      .from(users)
+      .where(eq(users.role, "teacher"))
+      .or(eq(users.role, "student"));
+
+    res.json(allUsers);
+  });
+
   // Subject routes
   app.get("/api/subjects", requireAuth, async (req, res) => {
     const allSubjects = await db.select().from(subjects);
