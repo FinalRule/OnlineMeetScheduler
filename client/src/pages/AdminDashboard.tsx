@@ -82,27 +82,44 @@ export default function AdminDashboard() {
     queryKey: ["/api/users"],
   });
 
-  const addUserForm = useForm<RegisterData>();
+  const addUserForm = useForm<RegisterData>({
+    defaultValues: {
+      role: "student",
+      username: "",
+      password: "",
+      name: "",
+    }
+  });
   const addSubjectForm = useForm<Subject>();
   const addClass = useForm<Class>();
 
   const addUserMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
+      const formattedData = {
+        ...data,
+        dateOfBirth: data.dateOfBirth || undefined,
+        nationality: data.nationality || undefined,
+        location: data.location || undefined,
+        basePayment: data.basePayment || undefined
+      };
+
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formattedData),
         credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
 
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      addUserForm.reset();
       toast({
         title: "Success",
         description: "User added successfully",
@@ -444,9 +461,13 @@ export default function AdminDashboard() {
                     </DialogHeader>
                     <Form {...addUserForm}>
                       <form
-                        onSubmit={addUserForm.handleSubmit((data) =>
-                          addUserMutation.mutateAsync(data as RegisterData)
-                        )}
+                        onSubmit={addUserForm.handleSubmit((data) => {
+                          const formData = {
+                            ...data,
+                            basePayment: data.basePayment ? Number(data.basePayment) : undefined,
+                          };
+                          addUserMutation.mutateAsync(formData);
+                        })}
                         className="space-y-4"
                       >
                         <FormField
