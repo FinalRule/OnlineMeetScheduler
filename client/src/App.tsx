@@ -4,6 +4,7 @@ import AuthPage from "./pages/AuthPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
+import Navigation from "./components/Navigation";
 import { useUser } from "./hooks/use-user";
 
 function App() {
@@ -22,11 +23,31 @@ function App() {
   }
 
   return (
-    <Switch>
-      {user.role === "admin" && <Route path="/" component={AdminDashboard} />}
-      {user.role === "teacher" && <Route path="/" component={TeacherDashboard} />}
-      {user.role === "student" && <Route path="/" component={StudentDashboard} />}
-    </Switch>
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <Switch>
+        {user.role === "admin" && (
+          <>
+            <Route path="/" component={AdminDashboard} />
+            <Route path="/admin" component={AdminDashboard} />
+            <Route path="/teacher" component={TeacherDashboard} />
+            <Route path="/student" component={StudentDashboard} />
+          </>
+        )}
+        {user.role === "teacher" && (
+          <>
+            <Route path="/" component={TeacherDashboard} />
+            <Route path="/teacher" component={TeacherDashboard} />
+          </>
+        )}
+        {user.role === "student" && (
+          <>
+            <Route path="/" component={StudentDashboard} />
+            <Route path="/student" component={StudentDashboard} />
+          </>
+        )}
+      </Switch>
+    </div>
   );
 }
 
