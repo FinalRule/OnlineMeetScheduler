@@ -5,7 +5,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users, insertUserSchema, type User } from "@db/schema";
+import { users, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 
@@ -30,7 +30,19 @@ const crypto = {
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User {
+      id: number;
+      username: string;
+      role: "admin" | "teacher" | "student";
+      name: string;
+      dateOfBirth?: Date;
+      nationality?: string;
+      location?: string;
+      baseSalaryPerHour?: number;
+      basePaymentPerHour?: number;
+      balance?: number;
+      isActive?: boolean;
+    }
   }
 }
 
@@ -106,7 +118,7 @@ export function setupAuth(app: Express) {
           .send("Invalid input: " + result.error.issues.map(i => i.message).join(", "));
       }
 
-      const { username, password, role, name, dateOfBirth, nationality, location, basePayment } = result.data;
+      const { username, password, role, name, dateOfBirth, nationality, location, baseSalaryPerHour, basePaymentPerHour } = result.data;
 
       const [existingUser] = await db
         .select()
@@ -130,7 +142,8 @@ export function setupAuth(app: Express) {
           dateOfBirth,
           nationality,
           location,
-          basePayment,
+          baseSalaryPerHour,
+          basePaymentPerHour,
         })
         .returning();
 
