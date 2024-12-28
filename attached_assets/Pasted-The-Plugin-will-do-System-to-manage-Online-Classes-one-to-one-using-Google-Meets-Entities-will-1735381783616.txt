@@ -1,0 +1,22 @@
+The Plugin will do:
+System to manage Online Classes (one to one) using Google Meets.
+Entities will be:
+Student
+Teacher
+Class
+Appointment
+Subject
+------------
+The workflow will be:
+* Admin input Subjects (Name, Durations, Price for each Durations and Sessions per week combain, Teachers who can teach that subject, etc..)
+* The Admin input Student data (Name, kind, date of birth, Nationality, Location, Basic Payment per hour, etc..)
+* Admin input Teacher data (Name, Kind, Date of birth, Location, Subjects from the subjects in the plugin, basic Salary per hour)
+* Admin Generate New Class (Auto Class ID, Subject, Teacher, Student/s, Start Date, End Date (Automaticlly month after but editable to make cutom end date), Days of week, time of the class (changeable for each day of the week seperatelly), Duration (each week day seperatelly), file/s included, Notes for Admin, Notes for Teacher, Custom Hour price (overwrite the student Basic Payment per hour and overwrite Subject hour price), Custom Teacher Salary per Hour (overwrite Basic Salary per hour of the teacher), etc..)
+* After Admin update the post the plugin generate appointments based on the dates, weekdays and times in the post, each appointment will have (date, time, duration, teacher note, student note, student attenedance, teacher attenedance, file/s uploaded, assiment, student rate, teacher rate, Google Meet link, etc..)
+* Teacher Dashboard include (Name, Hour price, Subjects he/she can teach, Students he/she have, three upcoming sessions, section contain his classes, when click on  the class open a tab where class ID, Student/s name, class schedule, table of the appointments, all appointments is unclickable only next appointments is clickable, can't see the hour price in all appointments or in class page, can add text in teacher notes, can download files from assiment, etc..)
+there will be onther things, like in teacher dashboard a balance and past salaries he/she recieved.
+Also a dashboard for students
+Also dashboard for Amin where can see all the teachers, students, general balance, each teacher and each student balance, put payouts for teachers, ask students for payments and so on.
+I suggest to start with what I explained and go on slowly on the rest and make sure that the structure will support any updates or new requests and functions.
+Please note that both teachers and students will have a frontend dashboard and won't work in backend dashboard of the wordpress. 
+Can be such plugin be done?
