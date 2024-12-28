@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
@@ -9,18 +9,25 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role", { enum: ["admin", "teacher", "student"] }).notNull(),
   name: text("name").notNull(),
+  type: text("type"),
   dateOfBirth: timestamp("date_of_birth"),
   nationality: text("nationality"),
   location: text("location"),
-  basePayment: decimal("base_payment", { precision: 10, scale: 2 }),
+  baseSalaryPerHour: decimal("base_salary_per_hour", { precision: 10, scale: 2 }),
+  basePaymentPerHour: decimal("base_payment_per_hour", { precision: 10, scale: 2 }),
+  balance: decimal("balance", { precision: 10, scale: 2 }).default('0'),
+  paymentHistory: jsonb("payment_history").default('[]'),
+  isActive: boolean("is_active").default(true),
 });
 
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  duration: integer("duration").notNull(), // in minutes
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   sessionsPerWeek: integer("sessions_per_week").notNull(),
+  description: text("description"),
+  durations: jsonb("durations").default('[]'),
+  pricePerDuration: jsonb("price_per_duration").default('{}'),
+  isActive: boolean("is_active").default(true),
 });
 
 export const teacherSubjects = pgTable("teacher_subjects", {
@@ -31,48 +38,52 @@ export const teacherSubjects = pgTable("teacher_subjects", {
 
 export const classes = pgTable("classes", {
   id: serial("id").primaryKey(),
+  classId: text("class_id").unique().notNull(),
   subjectId: integer("subject_id").references(() => subjects.id),
   teacherId: integer("teacher_id").references(() => users.id),
-  studentId: integer("student_id").references(() => users.id),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
-  customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
-  customTeacherSalary: decimal("custom_teacher_salary", { precision: 10, scale: 2 }),
+  weekDays: jsonb("week_days").default('[]'),
+  timePerDay: jsonb("time_per_day").default('{}'),
+  durationPerDay: jsonb("duration_per_day").default('{}'),
+  files: jsonb("files").default('[]'),
   adminNotes: text("admin_notes"),
   teacherNotes: text("teacher_notes"),
+  customHourPrice: decimal("custom_hour_price", { precision: 10, scale: 2 }),
+  customTeacherSalary: decimal("custom_teacher_salary", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").default(true),
+});
+
+export const classStudents = pgTable("class_students", {
+  id: serial("id").primaryKey(),
+  classId: integer("class_id").references(() => classes.id),
+  studentId: integer("student_id").references(() => users.id),
 });
 
 export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),
+  appointmentId: text("appointment_id").unique().notNull(),
   classId: integer("class_id").references(() => classes.id),
   date: timestamp("date").notNull(),
+  time: text("time").notNull(),
   duration: integer("duration").notNull(),
   teacherNote: text("teacher_note"),
   studentNote: text("student_note"),
   studentAttendance: boolean("student_attendance"),
   teacherAttendance: boolean("teacher_attendance"),
-  meetLink: text("meet_link"),
+  files: jsonb("files").default('[]'),
+  assignment: text("assignment"),
   studentRating: integer("student_rating"),
   teacherRating: integer("teacher_rating"),
+  meetLink: text("meet_link"),
+  status: text("status", { enum: ["scheduled", "completed", "cancelled"] }).default('scheduled'),
 });
 
-export const notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  type: text("type", { enum: ["upcoming_class", "assignment_due", "class_reminder"] }).notNull(),
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  read: boolean("read").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  scheduledFor: timestamp("scheduled_for"),
-  relatedAppointmentId: integer("related_appointment_id").references(() => appointments.id),
-});
-
+// Relations
 export const usersRelations = relations(users, ({ many }) => ({
   teacherSubjects: many(teacherSubjects),
   teacherClasses: many(classes, { relationName: "teacher" }),
-  studentClasses: many(classes, { relationName: "student" }),
-  notifications: many(notifications),
+  studentClasses: many(classStudents),
 }));
 
 export const subjectsRelations = relations(subjects, ({ many }) => ({
@@ -89,17 +100,22 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
     fields: [classes.teacherId],
     references: [users.id],
   }),
-  student: one(users, {
-    fields: [classes.studentId],
-    references: [users.id],
-  }),
+  students: many(classStudents),
   appointments: many(appointments),
 }));
 
-export const appointmentsRelations = relations(appointments, ({ many }) => ({
-  notifications: many(notifications),
+export const classStudentsRelations = relations(classStudents, ({ one }) => ({
+  class: one(classes, {
+    fields: [classStudents.classId],
+    references: [classes.id],
+  }),
+  student: one(users, {
+    fields: [classStudents.studentId],
+    references: [users.id],
+  }),
 }));
 
+// Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Subject = typeof subjects.$inferSelect;
@@ -108,15 +124,13 @@ export type Class = typeof classes.$inferSelect;
 export type InsertClass = typeof classes.$inferInsert;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = typeof appointments.$inferInsert;
-export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = typeof notifications.$inferInsert;
-export type SelectUser = typeof users.$inferSelect;
+export type ClassStudent = typeof classStudents.$inferSelect;
+export type InsertClassStudent = typeof classStudents.$inferInsert;
 
+// Schemas
 export const insertUserSchema = createInsertSchema(users, {
   dateOfBirth: z.string().optional().transform(val => val ? new Date(val) : null),
-  basePayment: z.number().optional(),
   role: z.enum(["admin", "teacher", "student"]),
 });
+
 export const selectUserSchema = createSelectSchema(users);
-export const insertNotificationSchema = createInsertSchema(notifications);
-export const selectNotificationSchema = createSelectSchema(notifications);

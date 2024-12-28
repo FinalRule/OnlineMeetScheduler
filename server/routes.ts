@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { subjects, classes, appointments, teacherSubjects, users, notifications } from "@db/schema";
+import { subjects, classes, appointments, teacherSubjects, users, classStudents } from "@db/schema";
 import { eq, and, inArray, or } from "drizzle-orm";
 import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
@@ -19,7 +19,7 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Auth middleware to ensure user is logged in
-  const requireAuth = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+  const requireAuth = (req: any, res: any, next: any) => {
     if (!req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -69,7 +69,8 @@ export function registerRoutes(app: Express): Server {
         dateOfBirth: users.dateOfBirth,
         nationality: users.nationality,
         location: users.location,
-        basePayment: users.basePayment,
+        baseSalaryPerHour: users.baseSalaryPerHour,
+        basePaymentPerHour: users.basePaymentPerHour,
       })
       .from(users)
       .where(or(eq(users.role, "teacher"), eq(users.role, "student")));
@@ -87,24 +88,46 @@ export function registerRoutes(app: Express): Server {
     if (req.user?.role !== "admin") {
       return res.status(403).send("Unauthorized");
     }
-    const { name, duration, price, sessionsPerWeek } = req.body;
+
+    const { name, description, sessionsPerWeek, durations, pricePerDuration } = req.body;
     const [newSubject] = await db
       .insert(subjects)
-      .values({ name, duration, price, sessionsPerWeek })
+      .values({ 
+        name, 
+        description, 
+        sessionsPerWeek,
+        durations: durations || [],
+        pricePerDuration: pricePerDuration || {}
+      })
       .returning();
     res.json(newSubject);
   });
 
   // Class routes
   app.get("/api/classes", requireAuth, async (req, res) => {
-    const userClasses = await db
+    const userClassesQuery = db
       .select()
-      .from(classes)
-      .where(
-        req.user.role === "teacher"
-          ? eq(classes.teacherId, req.user.id)
-          : eq(classes.studentId, req.user.id)
-      );
+      .from(classes);
+
+    if (req.user.role === "teacher") {
+      userClassesQuery.where(eq(classes.teacherId, req.user.id));
+    } else if (req.user.role === "student") {
+      const studentClasses = await db
+        .select({
+          classId: classStudents.classId
+        })
+        .from(classStudents)
+        .where(eq(classStudents.studentId, req.user.id));
+
+      const classIds = studentClasses.map(c => c.classId);
+      if (classIds.length) {
+        userClassesQuery.where(inArray(classes.id, classIds));
+      } else {
+        return res.json([]);
+      }
+    }
+
+    const userClasses = await userClassesQuery;
     res.json(userClasses);
   });
 
@@ -117,7 +140,11 @@ export function registerRoutes(app: Express): Server {
       .where(
         req.user.role === "teacher"
           ? eq(classes.teacherId, req.user.id)
-          : eq(classes.studentId, req.user.id)
+          : inArray(classes.id, (await db
+            .select({classId: classStudents.classId})
+            .from(classStudents)
+            .where(eq(classStudents.studentId, req.user.id))
+            .map(c => c.classId)))
       );
 
     const classIds = userClasses.map(c => c.id);
@@ -135,41 +162,14 @@ export function registerRoutes(app: Express): Server {
     res.json(userAppointments);
   });
 
-  // Notification routes
-  app.get("/api/notifications", requireAuth, async (req, res) => {
-    const userNotifications = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, req.user.id))
-      .orderBy(desc(notifications.createdAt));
-
-    res.json(userNotifications);
-  });
-
-  app.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
-    const { id } = req.params;
-
-    const [updated] = await db
-      .update(notifications)
-      .set({ read: true })
-      .where(
-        and(
-          eq(notifications.id, parseInt(id)),
-          eq(notifications.userId, req.user.id)
-        )
-      )
-      .returning();
-
-    res.json(updated);
-  });
 
   // Create appointment with Google Meet integration
   app.post("/api/appointments", requireAuth, async (req, res) => {
-    if (req.user.role !== "admin") {
+    if (req.user?.role !== "admin") {
       return res.status(403).send("Unauthorized");
     }
 
-    const { classId, date, duration } = req.body;
+    const { classId, date, time, duration } = req.body;
 
     try {
       // Get class and subject details
@@ -177,7 +177,6 @@ export function registerRoutes(app: Express): Server {
         .select({
           id: classes.id,
           teacherId: classes.teacherId,
-          studentId: classes.studentId,
           subjectId: classes.subjectId,
         })
         .from(classes)
@@ -209,35 +208,26 @@ export function registerRoutes(app: Express): Server {
       );
 
       // Create appointment
+      const appointmentId = `APT${Date.now()}`;
       const [newAppointment] = await db
         .insert(appointments)
         .values({
+          appointmentId,
           classId,
-          date,
+          date: new Date(date),
+          time,
           duration,
           meetLink,
         })
         .returning();
 
-      // Create notifications
-      await db.insert(notifications).values([
-        {
-          userId: classDetails.teacherId,
-          type: "upcoming_class",
-          title: "New Class Scheduled",
-          message: `You have a new class scheduled for ${new Date(date).toLocaleString()}`,
-          scheduledFor: new Date(date),
-          relatedAppointmentId: newAppointment.id,
-        },
-        {
-          userId: classDetails.studentId,
-          type: "upcoming_class",
-          title: "New Class Scheduled",
-          message: `You have a new class scheduled for ${new Date(date).toLocaleString()}`,
-          scheduledFor: new Date(date),
-          relatedAppointmentId: newAppointment.id,
-        },
-      ]);
+      // Get students in the class
+      const students = await db
+        .select({
+          studentId: classStudents.studentId
+        })
+        .from(classStudents)
+        .where(eq(classStudents.classId, classId));
 
       res.json(newAppointment);
     } catch (error) {
