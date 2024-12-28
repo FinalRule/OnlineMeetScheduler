@@ -55,10 +55,23 @@ export const appointments = pgTable("appointments", {
   teacherRating: integer("teacher_rating"),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  type: text("type", { enum: ["upcoming_class", "assignment_due", "class_reminder"] }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  scheduledFor: timestamp("scheduled_for"),
+  relatedAppointmentId: integer("related_appointment_id").references(() => appointments.id),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   teacherSubjects: many(teacherSubjects),
   teacherClasses: many(classes, { relationName: "teacher" }),
   studentClasses: many(classes, { relationName: "student" }),
+  notifications: many(notifications),
 }));
 
 export const subjectsRelations = relations(subjects, ({ many }) => ({
@@ -82,10 +95,19 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
   appointments: many(appointments),
 }));
 
+export const appointmentsRelations = relations(appointments, ({ many }) => ({
+  notifications: many(notifications),
+}));
+
+
 export type User = typeof users.$inferSelect;
 export type Subject = typeof subjects.$inferSelect;
 export type Class = typeof classes.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
+export const insertNotificationSchema = createInsertSchema(notifications);
+export const selectNotificationSchema = createSelectSchema(notifications);

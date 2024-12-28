@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar, CheckCircle, XCircle, Video } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
+import NotificationCenter from "@/components/NotificationCenter";
 
 type Appointment = {
   id: number;
@@ -65,6 +66,7 @@ export default function TeacherDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Welcome, {user?.name}</h1>
+          <NotificationCenter />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
