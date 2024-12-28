@@ -7,9 +7,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["admin", "teacher", "student"] }).notNull(),
+  role: text("role", { enum: ["admin", "teacher", "student"] }).notNull().default("student"),
   name: text("name").notNull(),
-  type: text("type"),
   dateOfBirth: timestamp("date_of_birth"),
   nationality: text("nationality"),
   location: text("location"),
@@ -19,6 +18,19 @@ export const users = pgTable("users", {
   paymentHistory: jsonb("payment_history").default('[]'),
   isActive: boolean("is_active").default(true),
 });
+
+// Create schema for user input validation
+export const insertUserSchema = createInsertSchema(users, {
+  dateOfBirth: z.string().optional().transform(val => val ? new Date(val) : undefined),
+  role: z.enum(["admin", "teacher", "student"]),
+  baseSalaryPerHour: z.number().optional(),
+  basePaymentPerHour: z.number().optional(),
+});
+
+export const selectUserSchema = createSelectSchema(users);
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
@@ -116,8 +128,6 @@ export const classStudentsRelations = relations(classStudents, ({ one }) => ({
 }));
 
 // Types
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
 export type Subject = typeof subjects.$inferSelect;
 export type InsertSubject = typeof subjects.$inferInsert;
 export type Class = typeof classes.$inferSelect;
@@ -128,9 +138,3 @@ export type ClassStudent = typeof classStudents.$inferSelect;
 export type InsertClassStudent = typeof classStudents.$inferInsert;
 
 // Schemas
-export const insertUserSchema = createInsertSchema(users, {
-  dateOfBirth: z.string().optional().transform(val => val ? new Date(val) : null),
-  role: z.enum(["admin", "teacher", "student"]),
-});
-
-export const selectUserSchema = createSelectSchema(users);
