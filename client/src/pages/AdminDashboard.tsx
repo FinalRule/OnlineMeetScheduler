@@ -35,14 +35,15 @@ type Subject = {
 
 type Class = {
   id: number;
+  classId: string;
   subjectId: number;
   teacherId: number;
-  studentId: number;
   startDate: string;
   endDate: string;
-  customPrice?: number;
-  customTeacherSalary?: number;
-  adminNotes?: string;
+  weekDays: string[];
+  timePerDay: Record<string, string>;
+  durationPerDay: Record<string, number>;
+  isActive: boolean;
 };
 
 type User = {
@@ -94,56 +95,33 @@ export default function AdminDashboard() {
       name: "",
     }
   });
-  const addSubjectForm = useForm<Subject>();
-  const addClass = useForm<Class>();
-
-  const addUserMutation = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      const formattedData = {
-        ...data,
-        dateOfBirth: data.dateOfBirth || undefined,
-        nationality: data.nationality || undefined,
-        location: data.location || undefined,
-        basePayment: data.basePayment || undefined
-      };
-
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formattedData),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      addUserForm.reset();
-      toast({
-        title: "Success",
-        description: "User added successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+  const addSubjectForm = useForm<Subject>({
+    defaultValues: {
+      name: "",
+      sessionsPerWeek: 1,
+      durations: [],
+      pricePerDuration: {},
+      isActive: true,
+    }
   });
+  const addClass = useForm<Class>();
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: Subject) => {
+      const formattedData = {
+        ...data,
+        durations: typeof data.durations === 'string' 
+          ? data.durations.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d))
+          : data.durations,
+        pricePerDuration: typeof data.pricePerDuration === 'string'
+          ? JSON.parse(`{${data.pricePerDuration}}`)
+          : data.pricePerDuration
+      };
+
       const response = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formattedData),
         credentials: "include",
       });
 
@@ -155,40 +133,10 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      addSubjectForm.reset();
       toast({
         title: "Success",
         description: "Subject added successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const addClassMutation = useMutation({
-    mutationFn: async (data: Class) => {
-      const response = await fetch("/api/classes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
-      toast({
-        title: "Success",
-        description: "Class added successfully",
       });
     },
     onError: (error: Error) => {
@@ -260,7 +208,6 @@ export default function AdminDashboard() {
                             </FormItem>
                           )}
                         />
-                        {/* Added durations field */}
                         <FormField
                           control={addSubjectForm.control}
                           name="durations"
@@ -268,20 +215,33 @@ export default function AdminDashboard() {
                             <FormItem>
                               <FormLabel>Durations (minutes, comma-separated)</FormLabel>
                               <FormControl>
-                                <Input {...field} type="text" />
+                                <Input 
+                                  {...field} 
+                                  value={Array.isArray(field.value) ? field.value.join(', ') : field.value}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    field.onChange(value);
+                                  }}
+                                />
                               </FormControl>
                             </FormItem>
                           )}
                         />
-                        {/* Added pricePerDuration field */}
                         <FormField
                           control={addSubjectForm.control}
                           name="pricePerDuration"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Price per Duration (e.g., "60":100, "90":150)</FormLabel>
+                              <FormLabel>Price per Duration (e.g., "60": 100, "90": 150)</FormLabel>
                               <FormControl>
-                                <Input {...field} type="text" />
+                                <Input 
+                                  {...field} 
+                                  value={typeof field.value === 'object' 
+                                    ? Object.entries(field.value).map(([k, v]) => `"${k}": ${v}`).join(', ')
+                                    : field.value
+                                  }
+                                  onChange={(e) => field.onChange(e.target.value)}
+                                />
                               </FormControl>
                             </FormItem>
                           )}
@@ -295,6 +255,7 @@ export default function AdminDashboard() {
                               <FormControl>
                                 <Input
                                   type="number"
+                                  min="1"
                                   {...field}
                                   onChange={(e) =>
                                     field.onChange(parseInt(e.target.value))
@@ -353,7 +314,6 @@ export default function AdminDashboard() {
               }}
             />
           </TabsContent>
-
           <TabsContent value="classes">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
