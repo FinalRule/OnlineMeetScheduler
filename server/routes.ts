@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { subjects, classes, appointments, teacherSubjects, users, notifications } from "@db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, or } from "drizzle-orm";
 import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
 
@@ -36,8 +36,7 @@ export function registerRoutes(app: Express): Server {
         basePayment: users.basePayment,
       })
       .from(users)
-      .where(eq(users.role, "teacher"))
-      .or(eq(users.role, "student"));
+      .where(or(eq(users.role, "teacher"), eq(users.role, "student")));
 
     res.json(allUsers);
   });

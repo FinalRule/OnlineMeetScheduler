@@ -54,6 +54,17 @@ type User = {
   basePayment?: number;
 };
 
+type RegisterData = {
+  username: string;
+  password: string;
+  name: string;
+  role: "teacher" | "student";
+  dateOfBirth?: string;
+  nationality?: string;
+  location?: string;
+  basePayment?: number;
+};
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,12 +82,12 @@ export default function AdminDashboard() {
     queryKey: ["/api/users"],
   });
 
-  const addUserForm = useForm<User>();
+  const addUserForm = useForm<RegisterData>();
   const addSubjectForm = useForm<Subject>();
   const addClass = useForm<Class>();
 
   const addUserMutation = useMutation({
-    mutationFn: async (data: User) => {
+    mutationFn: async (data: RegisterData) => {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -434,7 +445,7 @@ export default function AdminDashboard() {
                     <Form {...addUserForm}>
                       <form
                         onSubmit={addUserForm.handleSubmit((data) =>
-                          addUserMutation.mutateAsync(data as User)
+                          addUserMutation.mutateAsync(data as RegisterData)
                         )}
                         className="space-y-4"
                       >
@@ -534,7 +545,7 @@ export default function AdminDashboard() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                {field.value === "teacher"
+                                {addUserForm.watch("role") === "teacher"
                                   ? "Base Salary per Hour"
                                   : "Base Payment per Hour"}
                               </FormLabel>
