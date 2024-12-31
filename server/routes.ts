@@ -222,6 +222,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const { subjectId, teacherId, studentIds, startDate, endDate, weekDays, timePerDay, durationPerDay } = req.body;
 
+      // Validate required fields
+      if (!subjectId || !teacherId || !startDate || !endDate) {
+        return res.status(400).send("Missing required fields");
+      }
+
       // Generate a unique class ID
       const classId = `CLS${Date.now()}`;
 
@@ -234,11 +239,15 @@ export function registerRoutes(app: Express): Server {
           teacherId,
           startDate: new Date(startDate),
           endDate: new Date(endDate),
-          weekDays,
-          timePerDay,
-          durationPerDay,
+          weekDays: Array.isArray(weekDays) ? weekDays : [],
+          timePerDay: timePerDay || {},
+          durationPerDay: durationPerDay || {},
         })
         .returning();
+
+      if (!newClass) {
+        throw new Error("Failed to create class record");
+      }
 
       // Add students to the class
       if (studentIds?.length > 0) {
@@ -251,10 +260,11 @@ export function registerRoutes(app: Express): Server {
           );
       }
 
+      console.log('Class created successfully:', newClass);
       res.json(newClass);
     } catch (error) {
       console.error('Error creating class:', error);
-      res.status(500).send("Failed to create class");
+      res.status(500).send(error instanceof Error ? error.message : "Failed to create class");
     }
   });
 

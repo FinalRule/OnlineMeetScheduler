@@ -188,31 +188,48 @@ export default function AdminDashboard() {
 
   const addClassMutation = useMutation({
     mutationFn: async (data: AddClassFormData) => {
-      const response = await fetch("/api/classes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
+      try {
+        const formData = {
+          ...data,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          weekDays: Array.isArray(data.weekDays) ? data.weekDays : [],
+          timePerDay: data.timePerDay || {},
+          durationPerDay: data.durationPerDay || {},
+        };
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+        const response = await fetch("/api/classes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Failed to create class");
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error('Error in class mutation:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
       addClass.reset();
+      setSelectedWeekdays([]);
       toast({
         title: "Success",
         description: "Class added successfully",
       });
     },
     onError: (error: Error) => {
+      console.error('Class creation error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create class",
         variant: "destructive",
       });
     },
