@@ -149,32 +149,40 @@ export default function AdminDashboard() {
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: any) => {
-      const formData = {
-        ...data,
-        sessionsPerWeek: Number(data.sessionsPerWeek),
-        durations: typeof data.durations === 'string'
-          ? data.durations.split(',').map(Number)
-          : data.durations,
-        pricePerDuration: typeof data.pricePerDuration === 'string'
-          ? Object.fromEntries(data.pricePerDuration.split(',').map(item => {
-              const [key, value] = item.trim().split(':');
-              return [key.replace(/"/g, ''), Number(value.trim())];
-            }))
-          : data.pricePerDuration,
-      };
+      try {
+        const formData = {
+          ...data,
+          sessionsPerWeek: Number(data.sessionsPerWeek),
+          durations: typeof data.durations === 'string'
+            ? data.durations.split(',').map((d: string) => Number(d.trim()))
+            : data.durations,
+          pricePerDuration: typeof data.pricePerDuration === 'string'
+            ? data.pricePerDuration.split(',').reduce((acc: Record<string, number>, item: string) => {
+                const [duration, price] = item.split(':').map(s => s.trim());
+                if (duration && price) {
+                  acc[duration.replace(/['"]/g, '')] = Number(price);
+                }
+                return acc;
+              }, {})
+            : data.pricePerDuration,
+        };
 
-      const response = await fetch("/api/subjects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-        credentials: "include",
-      });
+        const response = await fetch("/api/subjects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+          credentials: "include",
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
