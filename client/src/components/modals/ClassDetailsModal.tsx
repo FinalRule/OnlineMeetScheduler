@@ -42,12 +42,12 @@ export default function ClassDetailsModal({ class_, isOpen, onClose }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Class Details</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-y-auto pr-2">
           <div className="grid grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
@@ -72,7 +72,7 @@ export default function ClassDetailsModal({ class_, isOpen, onClose }: Props) {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {formatWeekDays(class_.weekDays)}
+                  {formatWeekDays(class_.weekDays as string[])}
                 </p>
               </CardContent>
             </Card>
@@ -102,11 +102,11 @@ export default function ClassDetailsModal({ class_, isOpen, onClose }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {class_.weekDays.map((day) => (
+                {(class_.weekDays as string[]).map((day) => (
                   <TableRow key={day}>
                     <TableCell>{day}</TableCell>
-                    <TableCell>{class_.timePerDay[day]}</TableCell>
-                    <TableCell>{class_.durationPerDay[day]} minutes</TableCell>
+                    <TableCell>{(class_.timePerDay as Record<string, string>)[day]}</TableCell>
+                    <TableCell>{(class_.durationPerDay as Record<string, number>)[day]} minutes</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

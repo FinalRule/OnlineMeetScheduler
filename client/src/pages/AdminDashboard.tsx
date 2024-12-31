@@ -452,168 +452,103 @@ export default function AdminDashboard() {
                       Add Class
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
+                  <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+                    <DialogHeader className="flex-shrink-0">
                       <DialogTitle>Add New Class</DialogTitle>
                     </DialogHeader>
-                    <Form {...addClass}>
-                      <form
-                        onSubmit={addClass.handleSubmit((data) =>
-                          addClassMutation.mutateAsync(data)
-                        )}
-                        className="space-y-4"
-                      >
-                        <FormField
-                          control={addClass.control}
-                          name="subjectId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Subject</FormLabel>
-                              <Select
-                                value={field.value?.toString()}
-                                onValueChange={(value) => field.onChange(parseInt(value))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a subject" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {subjects?.map((subject) => (
-                                    <SelectItem key={subject.id} value={subject.id.toString()}>
-                                      {subject.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
+                    <div className="overflow-y-auto pr-2">
+                      <Form {...addClass}>
+                        <form
+                          onSubmit={addClass.handleSubmit((data) =>
+                            addClassMutation.mutateAsync(data)
                           )}
-                        />
-
-                        <FormField
-                          control={addClass.control}
-                          name="teacherId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Teacher</FormLabel>
-                              <Select
-                                value={field.value?.toString()}
-                                onValueChange={(value) => field.onChange(parseInt(value))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a teacher" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {users?.filter(user => user.role === "teacher").map((teacher) => (
-                                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                                      {teacher.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={addClass.control}
-                          name="studentIds"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Students</FormLabel>
-                              <div className="border rounded-md p-4 space-y-2">
-                                {users?.filter(user => user.role === "student").map((student) => (
-                                  <div key={student.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      checked={field.value?.includes(student.id)}
-                                      onCheckedChange={(checked) => {
-                                        const newValue = checked
-                                          ? [...(field.value || []), student.id]
-                                          : (field.value || []).filter(id => id !== student.id);
-                                        field.onChange(newValue);
-                                      }}
-                                    />
-                                    <label className="text-sm">{student.name}</label>
-                                  </div>
-                                ))}
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid grid-cols-2 gap-4">
+                          className="space-y-4"
+                        >
                           <FormField
                             control={addClass.control}
-                            name="startDate"
+                            name="subjectId"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Start Date</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
+                                <FormLabel>Subject</FormLabel>
+                                <Select
+                                  value={field.value?.toString()}
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a subject" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {subjects?.map((subject) => (
+                                      <SelectItem key={subject.id} value={subject.id.toString()}>
+                                        {subject.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </FormItem>
                             )}
                           />
 
                           <FormField
                             control={addClass.control}
-                            name="endDate"
+                            name="teacherId"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>End Date</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
+                                <FormLabel>Teacher</FormLabel>
+                                <Select
+                                  value={field.value?.toString()}
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a teacher" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {users?.filter(user => user.role === "teacher").map((teacher) => (
+                                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                                        {teacher.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </FormItem>
                             )}
                           />
-                        </div>
 
-                        <FormField
-                          control={addClass.control}
-                          name="weekDays"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Week Days</FormLabel>
-                              <div className="border rounded-md p-4 space-y-2">
-                                {WEEKDAYS.map(({ label, value }) => (
-                                  <div key={value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      checked={field.value?.includes(value)}
-                                      onCheckedChange={(checked) => {
-                                        const newValue = checked
-                                          ? [...(field.value || []), value]
-                                          : (field.value || []).filter(day => day !== value);
-                                        field.onChange(newValue);
-                                        setSelectedWeekdays(newValue);
-                                      }}
-                                    />
-                                    <label className="text-sm">{label}</label>
-                                  </div>
-                                ))}
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                          <FormField
+                            control={addClass.control}
+                            name="studentIds"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Students</FormLabel>
+                                <div className="border rounded-md p-4 space-y-2">
+                                  {users?.filter(user => user.role === "student").map((student) => (
+                                    <div key={student.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        checked={field.value?.includes(student.id)}
+                                        onCheckedChange={(checked) => {
+                                          const newValue = checked
+                                            ? [...(field.value || []), student.id]
+                                            : (field.value || []).filter(id => id !== student.id);
+                                          field.onChange(newValue);
+                                        }}
+                                      />
+                                      <label className="text-sm">{student.name}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
 
-                        {selectedWeekdays.map((day) => (
-                          <div key={day} className="grid grid-cols-2 gap-4 border rounded-md p-4">
-                            <h4 className="col-span-2 font-medium">{WEEKDAYS.find(w => w.value === day)?.label}</h4>
-
+                          <div className="grid grid-cols-2 gap-4">
                             <FormField
                               control={addClass.control}
-                              name={`timePerDay.${day}`}
+                              name="startDate"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Time</FormLabel>
+                                  <FormLabel>Start Date</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      type="time"
-                                      {...field}
-                                      onChange={(e) => {
-                                        field.onChange(e.target.value);
-                                        const newTimePerDay = { ...addClass.getValues().timePerDay, [day]: e.target.value };
-                                        addClass.setValue('timePerDay', newTimePerDay);
-                                      }}
-                                    />
+                                    <Input type="date" {...field} />
                                   </FormControl>
                                 </FormItem>
                               )}
@@ -621,33 +556,100 @@ export default function AdminDashboard() {
 
                             <FormField
                               control={addClass.control}
-                              name={`durationPerDay.${day}`}
+                              name="endDate"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Duration (minutes)</FormLabel>
+                                  <FormLabel>End Date</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      type="number"
-                                      min="15"
-                                      step="15"
-                                      {...field}
-                                      onChange={(e) => {
-                                        const value = parseInt(e.target.value);
-                                        field.onChange(value);
-                                        const newDurationPerDay = { ...addClass.getValues().durationPerDay, [day]: value };
-                                        addClass.setValue('durationPerDay', newDurationPerDay);
-                                      }}
-                                    />
+                                    <Input type="date" {...field} />
                                   </FormControl>
                                 </FormItem>
                               )}
                             />
                           </div>
-                        ))}
 
-                        <Button type="submit">Add Class</Button>
-                      </form>
-                    </Form>
+                          <FormField
+                            control={addClass.control}
+                            name="weekDays"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Week Days</FormLabel>
+                                <div className="border rounded-md p-4 space-y-2">
+                                  {WEEKDAYS.map(({ label, value }) => (
+                                    <div key={value} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        checked={field.value?.includes(value)}
+                                        onCheckedChange={(checked) => {
+                                          const newValue = checked
+                                            ? [...(field.value || []), value]
+                                            : (field.value || []).filter(day => day !== value);
+                                          field.onChange(newValue);
+                                          setSelectedWeekdays(newValue);
+                                        }}
+                                      />
+                                      <label className="text-sm">{label}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          {selectedWeekdays.map((day) => (
+                            <div key={day} className="grid grid-cols-2 gap-4 border rounded-md p-4">
+                              <h4 className="col-span-2 font-medium">{WEEKDAYS.find(w => w.value === day)?.label}</h4>
+
+                              <FormField
+                                control={addClass.control}
+                                name={`timePerDay.${day}`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Time</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="time"
+                                        {...field}
+                                        onChange={(e) => {
+                                          field.onChange(e.target.value);
+                                          const newTimePerDay = { ...addClass.getValues().timePerDay, [day]: e.target.value };
+                                          addClass.setValue('timePerDay', newTimePerDay);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={addClass.control}
+                                name={`durationPerDay.${day}`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Duration (minutes)</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="15"
+                                        step="15"
+                                        {...field}
+                                        onChange={(e) => {
+                                          const value = parseInt(e.target.value);
+                                          field.onChange(value);
+                                          const newDurationPerDay = { ...addClass.getValues().durationPerDay, [day]: value };
+                                          addClass.setValue('durationPerDay', newDurationPerDay);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          ))}
+
+                          <Button type="submit">Add Class</Button>
+                        </form>
+                      </Form>
+                    </div>
                   </DialogContent>
                 </Dialog>
               </CardHeader>
