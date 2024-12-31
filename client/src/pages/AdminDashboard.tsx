@@ -21,10 +21,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Users, BookOpen, Calendar } from "lucide-react";
+import { PlusCircle, Users, BookOpen, Calendar, Clock } from "lucide-react";
 import EditSubjectModal from "@/components/modals/EditSubjectModal";
 import { insertSubjectSchema } from "@db/schema";
 import type { InsertSubject } from "@db/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 type Subject = {
   id: number;
@@ -70,12 +73,34 @@ type RegisterData = {
   basePayment?: number;
 };
 
+type AddClassFormData = {
+  subjectId: number;
+  teacherId: number;
+  studentIds: number[];
+  startDate: string;
+  endDate: string;
+  weekDays: string[];
+  timePerDay: Record<string, string>;
+  durationPerDay: Record<string, number>;
+};
+
+const WEEKDAYS = [
+  { label: "Monday", value: "MON" },
+  { label: "Tuesday", value: "TUE" },
+  { label: "Wednesday", value: "WED" },
+  { label: "Thursday", value: "THU" },
+  { label: "Friday", value: "FRI" },
+  { label: "Saturday", value: "SAT" },
+  { label: "Sunday", value: "SUN" },
+];
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("subjects");
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [isEditSubjectModalOpen, setIsEditSubjectModalOpen] = useState(false);
+  const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -106,7 +131,14 @@ export default function AdminDashboard() {
       isActive: true,
     }
   });
-  const addClass = useForm<Class>();
+  const addClass = useForm<AddClassFormData>({
+    defaultValues: {
+      weekDays: [],
+      timePerDay: {},
+      durationPerDay: {},
+      studentIds: [],
+    }
+  });
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -143,6 +175,38 @@ export default function AdminDashboard() {
       toast({
         title: "Success",
         description: "Subject added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addClassMutation = useMutation({
+    mutationFn: async (data: AddClassFormData) => {
+      const response = await fetch("/api/classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
+      addClass.reset();
+      toast({
+        title: "Success",
+        description: "Class added successfully",
       });
     },
     onError: (error: Error) => {
@@ -331,14 +395,14 @@ export default function AdminDashboard() {
                       Add Class
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Add New Class</DialogTitle>
                     </DialogHeader>
                     <Form {...addClass}>
                       <form
                         onSubmit={addClass.handleSubmit((data) =>
-                          addClassMutation.mutateAsync(data as Class)
+                          addClassMutation.mutateAsync(data)
                         )}
                         className="space-y-4"
                       >
@@ -348,48 +412,182 @@ export default function AdminDashboard() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Subject</FormLabel>
-                              <FormControl>
-                                <select
-                                  {...field}
-                                  className="w-full p-2 border rounded-md"
-                                  onChange={(e) =>
-                                    field.onChange(parseInt(e.target.value))
-                                  }
-                                >
+                              <Select
+                                value={field.value?.toString()}
+                                onValueChange={(value) => field.onChange(parseInt(value))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a subject" />
+                                </SelectTrigger>
+                                <SelectContent>
                                   {subjects?.map((subject) => (
-                                    <option key={subject.id} value={subject.id}>
+                                    <SelectItem key={subject.id} value={subject.id.toString()}>
                                       {subject.name}
-                                    </option>
+                                    </SelectItem>
                                   ))}
-                                </select>
-                              </FormControl>
+                                </SelectContent>
+                              </Select>
                             </FormItem>
                           )}
                         />
+
                         <FormField
                           control={addClass.control}
-                          name="startDate"
+                          name="teacherId"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Start Date</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
+                              <FormLabel>Teacher</FormLabel>
+                              <Select
+                                value={field.value?.toString()}
+                                onValueChange={(value) => field.onChange(parseInt(value))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a teacher" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {users?.filter(user => user.role === "teacher").map((teacher) => (
+                                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                                      {teacher.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </FormItem>
                           )}
                         />
+
                         <FormField
                           control={addClass.control}
-                          name="endDate"
+                          name="studentIds"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>End Date</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
+                              <FormLabel>Students</FormLabel>
+                              <div className="border rounded-md p-4 space-y-2">
+                                {users?.filter(user => user.role === "student").map((student) => (
+                                  <div key={student.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      checked={field.value?.includes(student.id)}
+                                      onCheckedChange={(checked) => {
+                                        const newValue = checked
+                                          ? [...(field.value || []), student.id]
+                                          : (field.value || []).filter(id => id !== student.id);
+                                        field.onChange(newValue);
+                                      }}
+                                    />
+                                    <label className="text-sm">{student.name}</label>
+                                  </div>
+                                ))}
+                              </div>
                             </FormItem>
                           )}
                         />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={addClass.control}
+                            name="startDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Start Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={addClass.control}
+                            name="endDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>End Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={addClass.control}
+                          name="weekDays"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Week Days</FormLabel>
+                              <div className="border rounded-md p-4 space-y-2">
+                                {WEEKDAYS.map(({ label, value }) => (
+                                  <div key={value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      checked={field.value?.includes(value)}
+                                      onCheckedChange={(checked) => {
+                                        const newValue = checked
+                                          ? [...(field.value || []), value]
+                                          : (field.value || []).filter(day => day !== value);
+                                        field.onChange(newValue);
+                                        setSelectedWeekdays(newValue);
+                                      }}
+                                    />
+                                    <label className="text-sm">{label}</label>
+                                  </div>
+                                ))}
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        {selectedWeekdays.map((day) => (
+                          <div key={day} className="grid grid-cols-2 gap-4 border rounded-md p-4">
+                            <h4 className="col-span-2 font-medium">{WEEKDAYS.find(w => w.value === day)?.label}</h4>
+
+                            <FormField
+                              control={addClass.control}
+                              name={`timePerDay.${day}`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Time</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="time"
+                                      {...field}
+                                      onChange={(e) => {
+                                        field.onChange(e.target.value);
+                                        const newTimePerDay = { ...addClass.getValues().timePerDay, [day]: e.target.value };
+                                        addClass.setValue('timePerDay', newTimePerDay);
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={addClass.control}
+                              name={`durationPerDay.${day}`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Duration (minutes)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min="15"
+                                      step="15"
+                                      {...field}
+                                      onChange={(e) => {
+                                        const value = parseInt(e.target.value);
+                                        field.onChange(value);
+                                        const newDurationPerDay = { ...addClass.getValues().durationPerDay, [day]: value };
+                                        addClass.setValue('durationPerDay', newDurationPerDay);
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        ))}
+
                         <Button type="submit">Add Class</Button>
                       </form>
                     </Form>
