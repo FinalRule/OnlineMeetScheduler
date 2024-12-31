@@ -18,8 +18,8 @@ const updateProfileSchema = z.object({
 const insertSubjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sessionsPerWeek: z.number().int().min(0, "Sessions per week must be non-negative"),
-  durations: z.array(z.string()).default([]), 
-  pricePerDuration: z.object({}).default({}), 
+  durations: z.array(z.string()).default([]),
+  pricePerDuration: z.object({}).default({}),
   isActive: z.boolean().default(true),
 });
 
@@ -33,6 +33,35 @@ export function registerRoutes(app: Express): Server {
     }
     next();
   };
+
+  // Add user routes
+  app.get("/api/users", requireAuth, async (req, res) => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).send("Unauthorized");
+    }
+
+    try {
+      const allUsers = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          name: users.name,
+          role: users.role,
+          dateOfBirth: users.dateOfBirth,
+          nationality: users.nationality,
+          location: users.location,
+          baseSalaryPerHour: users.baseSalaryPerHour,
+          basePaymentPerHour: users.basePaymentPerHour,
+        })
+        .from(users)
+        .where(or(eq(users.role, "teacher"), eq(users.role, "student")));
+
+      res.json(allUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).send("Failed to fetch users");
+    }
+  });
 
   // Add profile update route
   app.put("/api/user/profile", requireAuth, async (req, res) => {

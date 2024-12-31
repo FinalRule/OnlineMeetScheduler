@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Users, BookOpen, Calendar, Clock } from "lucide-react";
 import EditSubjectModal from "@/components/modals/EditSubjectModal";
 import { insertSubjectSchema } from "@db/schema";
-import type { InsertSubject } from "@db/schema";
+import type { InsertUser } from "@db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -207,6 +207,38 @@ export default function AdminDashboard() {
       toast({
         title: "Success",
         description: "Class added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addUserMutation = useMutation({
+    mutationFn: async (data: RegisterData) => {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      addUserForm.reset();
+      toast({
+        title: "Success",
+        description: "User added successfully",
       });
     },
     onError: (error: Error) => {
