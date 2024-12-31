@@ -47,8 +47,8 @@ export const insertSubjectSchema = createInsertSchema(subjects).extend({
   durations: z.union([
     z.string().transform(str =>
       str.split(',')
-         .map(s => parseInt(s.trim()))
-         .filter(n => !isNaN(n))
+        .map(s => parseInt(s.trim()))
+        .filter(n => !isNaN(n))
     ),
     z.array(z.number())
   ]),
@@ -78,7 +78,7 @@ export const teacherSubjects = pgTable("teacher_subjects", {
 
 export const classes = pgTable("classes", {
   id: serial("id").primaryKey(),
-  classId: text("class_id").unique().notNull(),
+  classId: text("class_id").notNull(),
   subjectId: integer("subject_id").references(() => subjects.id),
   teacherId: integer("teacher_id").references(() => users.id),
   startDate: timestamp("start_date").notNull(),
@@ -93,6 +93,17 @@ export const classes = pgTable("classes", {
   customTeacherSalary: decimal("custom_teacher_salary", { precision: 10, scale: 2 }),
   isActive: boolean("is_active").default(true),
 });
+
+export const insertClassSchema = createInsertSchema(classes).extend({
+  startDate: z.string().transform(val => new Date(val)),
+  endDate: z.string().transform(val => new Date(val)),
+  weekDays: z.array(z.string()),
+  timePerDay: z.record(z.string(), z.string()),
+  durationPerDay: z.record(z.string(), z.number()),
+  studentIds: z.array(z.number()),
+});
+
+export const selectClassSchema = createSelectSchema(classes);
 
 export const classStudents = pgTable("class_students", {
   id: serial("id").primaryKey(),

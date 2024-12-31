@@ -214,6 +214,51 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/classes", requireAuth, async (req, res) => {
+    if (req.user?.role !== "admin") {
+      return res.status(403).send("Unauthorized");
+    }
+
+    try {
+      const { subjectId, teacherId, studentIds, startDate, endDate, weekDays, timePerDay, durationPerDay } = req.body;
+
+      // Generate a unique class ID
+      const classId = `CLS${Date.now()}`;
+
+      // Create the class
+      const [newClass] = await db
+        .insert(classes)
+        .values({
+          classId,
+          subjectId,
+          teacherId,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          weekDays,
+          timePerDay,
+          durationPerDay,
+        })
+        .returning();
+
+      // Add students to the class
+      if (studentIds?.length > 0) {
+        await db.insert(classStudents)
+          .values(
+            studentIds.map(studentId => ({
+              classId: newClass.id,
+              studentId,
+            }))
+          );
+      }
+
+      res.json(newClass);
+    } catch (error) {
+      console.error('Error creating class:', error);
+      res.status(500).send("Failed to create class");
+    }
+  });
+
+
   // Appointments routes
   app.get("/api/appointments", requireAuth, async (req, res) => {
     // First get the class IDs for the user
