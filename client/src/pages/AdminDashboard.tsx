@@ -7,8 +7,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -21,9 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Users, BookOpen, Calendar, Clock } from "lucide-react";
+import { PlusCircle, Users, BookOpen, Calendar } from "lucide-react";
 import EditSubjectModal from "@/components/modals/EditSubjectModal";
-import { insertSubjectSchema } from "@db/schema";
 import type { InsertUser } from "@db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,9 +49,8 @@ type Class = {
   timePerDay: Record<string, string>;
   durationPerDay: Record<string, number>;
   isActive: boolean;
-  subjectName?: string; // Added
-  teacherName?: string; // Added
-
+  subjectName?: string;
+  teacherName?: string;
 };
 
 type User = {
@@ -106,9 +104,7 @@ const WEEKDAYS = [
   { label: "Sunday", value: "SUN" },
 ];
 
-// Helper function to transform form data
 const parseSubjectFormData = (data: SubjectFormData) => {
-  // Parse durations into number array
   const durations = data.durations
     .split(',')
     .map(d => d.trim())
@@ -116,7 +112,6 @@ const parseSubjectFormData = (data: SubjectFormData) => {
     .map(d => parseInt(d, 10))
     .filter(d => !isNaN(d));
 
-  // Parse price per duration into Record<string, number>
   const pricePerDuration = data.pricePerDuration
     .split(',')
     .reduce((acc: Record<string, number>, curr) => {
@@ -347,9 +342,12 @@ export default function AdminDashboard() {
                       Add Subject
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                       <DialogTitle>Add New Subject</DialogTitle>
+                      <DialogDescription>
+                        Add a new subject with its duration and pricing details.
+                      </DialogDescription>
                     </DialogHeader>
                     <Form {...addSubjectForm}>
                       <form
@@ -365,6 +363,9 @@ export default function AdminDashboard() {
                               <FormControl>
                                 <Input {...field} />
                               </FormControl>
+                              <FormDescription>
+                                Enter the subject name
+                              </FormDescription>
                             </FormItem>
                           )}
                         />
@@ -373,16 +374,16 @@ export default function AdminDashboard() {
                           name="durations"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Durations (minutes, comma-separated)</FormLabel>
+                              <FormLabel>Durations (minutes)</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={field.value}
-                                  onChange={(e) => {
-                                    field.onChange(e.target.value);
-                                  }}
+                                  placeholder="e.g., 60,90"
                                 />
                               </FormControl>
+                              <FormDescription>
+                                Enter durations in minutes, separated by commas
+                              </FormDescription>
                             </FormItem>
                           )}
                         />
@@ -391,14 +392,16 @@ export default function AdminDashboard() {
                           name="pricePerDuration"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Price per Duration (e.g., "60": 100, "90": 150)</FormLabel>
+                              <FormLabel>Price per Duration</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={field.value}
-                                  onChange={(e) => field.onChange(e.target.value)}
+                                  placeholder="e.g., 60:100,90:150"
                                 />
                               </FormControl>
+                              <FormDescription>
+                                Format: duration:price, separated by commas
+                              </FormDescription>
                             </FormItem>
                           )}
                         />
@@ -413,11 +416,11 @@ export default function AdminDashboard() {
                                   type="number"
                                   min="1"
                                   {...field}
-                                  onChange={(e) =>
-                                    field.onChange(e.target.value)
-                                  }
                                 />
                               </FormControl>
+                              <FormDescription>
+                                Minimum 1 session per week
+                              </FormDescription>
                             </FormItem>
                           )}
                         />
