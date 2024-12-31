@@ -1,0 +1,73 @@
+[vite] connecting...
+[vite] connected.
+Warning: validateDOMNesting(...): <a> cannot appear as a descendant of &lt;a&gt;.
+    at a
+    at a
+    at https://b2899857-e458-4932-8173-0906ac9979c2-00-1b2cjhkqfhq2i.janeway.replit.dev/@fs/home/runner/OnlineMeetScheduler/node_modules/.vite/deps/wouter.js?v=c085c30d:337:18
+    at div
+    at div
+    at div
+    at nav
+    at Navigation (https://b2899857-e458-4932-8173-0906ac9979c2-00-1b2cjhkqfhq2i.janeway.replit.dev/src/components/Navigation.tsx:26:28)
+    at div
+    at App (https://b2899857-e458-4932-8173-0906ac9979c2-00-1b2cjhkqfhq2i.janeway.replit.dev/src/App.tsx:28:31)
+    at QueryClientProvider (https://b2899857-e458-4932-8173-0906ac9979c2-00-1b2cjhkqfhq2i.janeway.replit.dev/@fs/home/runner/OnlineMeetScheduler/node_modules/.vite/deps/@tanstack_react-query.js?v=c085c30d:2805:3)
+Form data received: 
+Object {name: "Math", sessionsPerWeek: "2", durations: "60,90", pricePerDuration: " 60:100,90:150", isActive: true}
+Data types: 
+Object {name: "string", sessionsPerWeek: "string", durations: "string", pricePerDuration: "string"}
+Processed durations: 
+(2) [60, 90]
+Processed pricePerDuration: 
+Object {60: 100, 90: 150}
+Final formatted data: 
+Object {name: "Math", sessionsPerWeek: 2, durations: Array(2), pricePerDuration: {…}, isActive: true}
+Server response error: Expected string, received number, Expected string, received number
+Detailed error in mutation: 
+Error {}
+
+Error in mutation: 
+Error {}
+message: "Expected string, received number, Expected string, received number"
+stack: "Error: Expected string, received number, Expected string, received number↵ at Object.mutationFn (https://b2899857-e458-4932-8173-0906ac9979c2-00-1b2cjhkqfhq2i.janeway.replit.dev/src/pages/AdminDashboard.tsx:155:17)"
+get stack: ƒ ()
+length: 0
+name: ""
+[[Prototype]]: ƒ ()
+apply: ƒ apply()
+length: 2
+name: "apply"
+[[Prototype]]: ƒ ()
+arguments: "'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them"
+get arguments: ƒ ()
+set arguments: ƒ ()
+bind: ƒ bind()
+call: ƒ call()
+caller: "'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them"
+get caller: ƒ ()
+set caller: ƒ ()
+constructor: ƒ Function()
+length: 0
+name: ""
+toString: ƒ toString()
+Symbol(Symbol.hasInstance): undefined
+[[Prototype]]: Object
+constructor: ƒ Function()
+hasOwnProperty: ƒ hasOwnProperty()
+isPrototypeOf: ƒ isPrototypeOf()
+propertyIsEnumerable: ƒ propertyIsEnumerable()
+toLocaleString: ƒ toLocaleString()
+toString: ƒ toString()
+valueOf: ƒ valueOf()
+__defineGetter__: ƒ __defineGetter__()
+__defineSetter__: ƒ __defineSetter__()
+__lookupGetter__: ƒ __lookupGetter__()
+__lookupSetter__: ƒ __lookupSetter__()
+__proto__: ƒ ()
+get __proto__: ƒ get __proto__()
+set __proto__: ƒ set __proto__()
+set stack: ƒ ()
+length: 1
+name: ""
+[[Prototype]]: ƒ ()
+[[Prototype]]: Object
