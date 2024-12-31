@@ -8,21 +8,6 @@ import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
 import { z } from "zod";
 
-const updateProfileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  dateOfBirth: z.string().optional(),
-  nationality: z.string().optional(),
-  location: z.string().optional(),
-});
-
-const insertSubjectSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  sessionsPerWeek: z.number().int().min(0, "Sessions per week must be non-negative"),
-  durations: z.array(z.string()).default([]),
-  pricePerDuration: z.object({}).default({}),
-  isActive: z.boolean().default(true),
-});
-
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -176,7 +161,6 @@ export function registerRoutes(app: Express): Server {
       const userClassesQuery = db
         .select({
           id: classes.id,
-          classId: classes.classId,
           subjectId: classes.subjectId,
           teacherId: classes.teacherId,
           startDate: classes.startDate,
@@ -188,19 +172,18 @@ export function registerRoutes(app: Express): Server {
         })
         .from(classes);
 
-      if (req.user.role === "teacher") {
+      if (req.user?.role === "teacher") {
         userClassesQuery.where(eq(classes.teacherId, req.user.id));
-      } else if (req.user.role === "student") {
+      } else if (req.user?.role === "student") {
         const studentClasses = await db
           .select({
-            classId: classStudents.classId
+            classId: classStudents.classId,
           })
           .from(classStudents)
           .where(eq(classStudents.studentId, req.user.id));
 
-        const classIds = studentClasses.map(c => c.classId);
-        if (classIds.length) {
-          userClassesQuery.where(inArray(classes.id, classIds));
+        if (studentClasses.length) {
+          userClassesQuery.where(inArray(classes.id, studentClasses.map(c => c.classId)));
         } else {
           return res.json([]);
         }
@@ -227,21 +210,18 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send("Missing required fields");
       }
 
-      // Generate a unique class ID
-      const classId = `CLS${Date.now()}`;
-
-      // Create the class
+      // First create the class
       const [newClass] = await db
         .insert(classes)
         .values({
-          classId,
           subjectId,
           teacherId,
           startDate: new Date(startDate),
           endDate: new Date(endDate),
-          weekDays: Array.isArray(weekDays) ? weekDays : [],
+          weekDays: weekDays || [],
           timePerDay: timePerDay || {},
           durationPerDay: durationPerDay || {},
+          isActive: true,
         })
         .returning();
 
@@ -249,15 +229,14 @@ export function registerRoutes(app: Express): Server {
         throw new Error("Failed to create class record");
       }
 
-      // Add students to the class
+      // Then add the students
       if (studentIds?.length > 0) {
-        await db.insert(classStudents)
-          .values(
-            studentIds.map(studentId => ({
-              classId: newClass.id,
-              studentId,
-            }))
-          );
+        const studentValues = studentIds.map(studentId => ({
+          classId: newClass.id,
+          studentId: studentId,
+        }));
+
+        await db.insert(classStudents).values(studentValues);
       }
 
       console.log('Class created successfully:', newClass);
@@ -377,3 +356,18 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+const updateProfileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  dateOfBirth: z.string().optional(),
+  nationality: z.string().optional(),
+  location: z.string().optional(),
+});
+
+const insertSubjectSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  sessionsPerWeek: z.number().int().min(0, "Sessions per week must be non-negative"),
+  durations: z.array(z.string()).default([]),
+  pricePerDuration: z.object({}).default({}),
+  isActive: z.boolean().default(true),
+});
