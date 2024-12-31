@@ -106,43 +106,31 @@ const WEEKDAYS = [
   { label: "Sunday", value: "SUN" },
 ];
 
-// Helper functions for data parsing
+// Helper function to transform form data
 const parseSubjectFormData = (data: SubjectFormData) => {
-  // Parse durations with proper error handling
-  const parseDurations = (durationsStr: string): number[] => {
-    if (!durationsStr) return [];
-    return durationsStr
-      .split(',')
-      .map(d => d.trim())
-      .filter(Boolean)
-      .map(d => parseInt(d, 10))
-      .filter(d => !isNaN(d));
-  };
+  const durations = data.durations
+    .split(',')
+    .map(d => parseInt(d.trim()))
+    .filter(d => !isNaN(d));
 
-  // Parse price per duration with proper error handling
-  const parsePricePerDuration = (priceStr: string): Record<string, number> => {
-    if (!priceStr) return {};
-    return priceStr
-      .split(',')
-      .reduce((acc: Record<string, number>, item: string) => {
-        const [duration, price] = item.split(':').map(s => s.trim());
-        const parsedPrice = parseInt(price, 10);
-        if (duration && !isNaN(parsedPrice)) {
-          acc[duration.replace(/['"]/g, '')] = parsedPrice;
-        }
-        return acc;
-      }, {});
-  };
+  const pricePerDuration = data.pricePerDuration
+    .split(',')
+    .reduce((acc: Record<string, number>, curr) => {
+      const [duration, price] = curr.split(':').map(s => s.trim());
+      if (duration && price) {
+        acc[duration] = parseInt(price);
+      }
+      return acc;
+    }, {});
 
   return {
     name: data.name,
-    sessionsPerWeek: parseInt(data.sessionsPerWeek, 10) || 1,
-    durations: parseDurations(data.durations),
-    pricePerDuration: parsePricePerDuration(data.pricePerDuration),
-    isActive: true,
+    sessionsPerWeek: parseInt(data.sessionsPerWeek),
+    durations,
+    pricePerDuration,
+    isActive: true
   };
 };
-
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -196,7 +184,6 @@ export default function AdminDashboard() {
   const addSubjectMutation = useMutation({
     mutationFn: async (data: SubjectFormData) => {
       const formattedData = parseSubjectFormData(data);
-
       const response = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,10 +207,10 @@ export default function AdminDashboard() {
       });
     },
     onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : "Failed to create subject";
+      const message = error instanceof Error ? error.message : "Failed to create subject";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: message,
         variant: "destructive",
       });
     },
@@ -233,7 +220,6 @@ export default function AdminDashboard() {
     try {
       await addSubjectMutation.mutateAsync(data);
     } catch (error) {
-      // Error will be handled by onError callback
       console.error('Form submission error:', error);
     }
   });

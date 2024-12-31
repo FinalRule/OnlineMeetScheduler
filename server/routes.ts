@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { subjects, classes, appointments, teacherSubjects, users, classStudents } from "@db/schema";
+import { subjects, classes, appointments, teacherSubjects, users, classStudents, insertSubjectSchema } from "@db/schema";
 import { eq, and, inArray, or } from "drizzle-orm";
 import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
@@ -102,7 +102,15 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const result = insertSubjectSchema.safeParse(req.body);
+      // Validate input data
+      const result = insertSubjectSchema.safeParse({
+        name: req.body.name,
+        sessionsPerWeek: Number(req.body.sessionsPerWeek),
+        durations: req.body.durations,
+        pricePerDuration: req.body.pricePerDuration,
+        isActive: req.body.isActive ?? true
+      });
+
       if (!result.success) {
         return res.status(400).send(result.error.issues.map(i => i.message).join(", "));
       }
@@ -115,7 +123,7 @@ export function registerRoutes(app: Express): Server {
       res.json(newSubject);
     } catch (error) {
       console.error('Error creating subject:', error);
-      res.status(500).send("Failed to create subject");
+      res.status(500).send(error instanceof Error ? error.message : "Failed to create subject");
     }
   });
 
