@@ -183,6 +183,16 @@ export default function AdminDashboard() {
   const addSubjectMutation = useMutation({
     mutationFn: async (data: SubjectFormData) => {
       try {
+        console.log('Form data received:', data);
+
+        // Log the data types
+        console.log('Data types:', {
+          name: typeof data.name,
+          sessionsPerWeek: typeof data.sessionsPerWeek,
+          durations: typeof data.durations,
+          pricePerDuration: typeof data.pricePerDuration
+        });
+
         // Process the form data
         const durations = data.durations
           .split(',')
@@ -190,6 +200,8 @@ export default function AdminDashboard() {
           .filter(Boolean)
           .map(d => parseInt(d, 10))
           .filter(d => !isNaN(d));
+
+        console.log('Processed durations:', durations);
 
         const pricePerDuration = data.pricePerDuration
           .split(',')
@@ -201,6 +213,8 @@ export default function AdminDashboard() {
             return acc;
           }, {});
 
+        console.log('Processed pricePerDuration:', pricePerDuration);
+
         const formattedData = {
           name: data.name,
           sessionsPerWeek: parseInt(data.sessionsPerWeek, 10),
@@ -208,6 +222,8 @@ export default function AdminDashboard() {
           pricePerDuration,
           isActive: true
         };
+
+        console.log('Final formatted data:', formattedData);
 
         const response = await fetch("/api/subjects", {
           method: "POST",
@@ -218,12 +234,13 @@ export default function AdminDashboard() {
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('Server response error:', errorText);
           throw new Error(errorText);
         }
 
         return response.json();
       } catch (error) {
-        console.error('Error in mutation:', error);
+        console.error('Detailed error in mutation:', error);
         throw error;
       }
     },
@@ -237,6 +254,7 @@ export default function AdminDashboard() {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Failed to create subject";
+      console.error('Error in mutation:', error);
       toast({
         title: "Error",
         description: message,
