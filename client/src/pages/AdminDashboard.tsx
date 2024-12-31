@@ -88,6 +88,14 @@ type AddClassFormData = {
   durationPerDay: Record<string, number>;
 };
 
+type SubjectFormData = {
+  name: string;
+  sessionsPerWeek: string;
+  durations: string;
+  pricePerDuration: string;
+  isActive?: boolean;
+};
+
 const WEEKDAYS = [
   { label: "Monday", value: "MON" },
   { label: "Tuesday", value: "TUE" },
@@ -97,6 +105,44 @@ const WEEKDAYS = [
   { label: "Saturday", value: "SAT" },
   { label: "Sunday", value: "SUN" },
 ];
+
+// Helper functions for data parsing
+const parseSubjectFormData = (data: SubjectFormData) => {
+  // Parse durations with proper error handling
+  const parseDurations = (durationsStr: string): number[] => {
+    if (!durationsStr) return [];
+    return durationsStr
+      .split(',')
+      .map(d => d.trim())
+      .filter(Boolean)
+      .map(d => parseInt(d, 10))
+      .filter(d => !isNaN(d));
+  };
+
+  // Parse price per duration with proper error handling
+  const parsePricePerDuration = (priceStr: string): Record<string, number> => {
+    if (!priceStr) return {};
+    return priceStr
+      .split(',')
+      .reduce((acc: Record<string, number>, item: string) => {
+        const [duration, price] = item.split(':').map(s => s.trim());
+        const parsedPrice = parseInt(price, 10);
+        if (duration && !isNaN(parsedPrice)) {
+          acc[duration.replace(/['"]/g, '')] = parsedPrice;
+        }
+        return acc;
+      }, {});
+  };
+
+  return {
+    name: data.name,
+    sessionsPerWeek: parseInt(data.sessionsPerWeek, 10) || 1,
+    durations: parseDurations(data.durations),
+    pricePerDuration: parsePricePerDuration(data.pricePerDuration),
+    isActive: true,
+  };
+};
+
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -129,12 +175,12 @@ export default function AdminDashboard() {
       name: "",
     }
   });
-  const addSubjectForm = useForm<Subject>({
+  const addSubjectForm = useForm<SubjectFormData>({
     defaultValues: {
       name: "",
-      sessionsPerWeek: 1,
-      durations: [],
-      pricePerDuration: {},
+      sessionsPerWeek: "1",
+      durations: "",
+      pricePerDuration: "",
       isActive: true,
     }
   });
@@ -148,64 +194,32 @@ export default function AdminDashboard() {
   });
 
   const addSubjectMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: SubjectFormData) => {
       try {
-        // Parse durations - handle empty or malformed input
-        const durations = typeof data.durations === 'string'
-          ? data.durations.split(',')
-              .map(d => d.trim())
-              .filter(Boolean)
-              .map(d => parseInt(d, 10))
-              .filter(d => !isNaN(d))
-          : [];
-
-        // Parse price per duration - handle empty or malformed input
-        const pricePerDuration = typeof data.pricePerDuration === 'string'
-          ? data.pricePerDuration.split(',')
-              .reduce((acc: Record<string, number>, item: string) => {
-                const [duration, price] = item.split(':').map(s => s.trim());
-                const parsedPrice = parseInt(price, 10);
-                if (duration && !isNaN(parsedPrice)) {
-                  acc[duration.replace(/['"]/g, '')] = parsedPrice;
-                }
-                return acc;
-              }, {})
-          : {};
-
-        const formData = {
-          name: data.name,
-          sessionsPerWeek: parseInt(data.sessionsPerWeek, 10) || 1,
-          durations,
-          pricePerDuration,
-          isActive: true,
-        };
+        const formattedData = parseSubjectFormData(data);
 
         const response = await fetch("/api/subjects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(formattedData),
           credentials: "include",
         });
 
-        // First check if it's a server error
         if (response.status >= 500) {
-          throw new Error(`Server error: ${response.statusText}`);
+          throw new Error("Internal server error");
         }
 
-        // For client errors, try to get the error message from text response
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText || "Failed to create subject");
         }
 
-        // Only try to parse JSON for successful responses
         return await response.json();
-      } catch (error: unknown) {
-        console.error('Error in subject mutation:', error);
+      } catch (error) {
         if (error instanceof Error) {
           throw new Error(error.message);
         }
-        throw new Error('Failed to create subject');
+        throw new Error("An unexpected error occurred");
       }
     },
     onSuccess: () => {
@@ -225,7 +239,6 @@ export default function AdminDashboard() {
     },
   });
 
-  // Update the form submission handler with proper error handling
   const handleSubjectSubmit = addSubjectForm.handleSubmit((data) => {
     try {
       return addSubjectMutation.mutateAsync(data);
@@ -388,10 +401,9 @@ export default function AdminDashboard() {
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={Array.isArray(field.value) ? field.value.join(', ') : field.value}
+                                  value={field.value}
                                   onChange={(e) => {
-                                    const value = e.target.value;
-                                    field.onChange(value);
+                                    field.onChange(e.target.value);
                                   }}
                                 />
                               </FormControl>
@@ -407,10 +419,7 @@ export default function AdminDashboard() {
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={typeof field.value === 'object'
-                                    ? Object.entries(field.value).map(([k, v]) => `"${k}": ${v}`).join(', ')
-                                    : field.value
-                                  }
+                                  value={field.value}
                                   onChange={(e) => field.onChange(e.target.value)}
                                 />
                               </FormControl>
@@ -429,7 +438,7 @@ export default function AdminDashboard() {
                                   min="1"
                                   {...field}
                                   onChange={(e) =>
-                                    field.onChange(parseInt(e.target.value))
+                                    field.onChange(e.target.value)
                                   }
                                 />
                               </FormControl>
