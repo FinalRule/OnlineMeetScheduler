@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { TableRow, TableCell, Table, TableHeader, TableHead, TableBody } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, Users } from "lucide-react";
+import { CalendarDays, Clock, Users, Video } from "lucide-react";
 import type { Class } from "@db/schema";
 import { format } from "date-fns";
 
@@ -11,6 +11,14 @@ interface Props {
     subjectName?: string;
     teacherName?: string;
     students?: { id: number; name: string }[];
+    appointments?: {
+      id: number;
+      date: string;
+      time: string;
+      duration: number;
+      meetLink?: string;
+      status: "scheduled" | "completed" | "cancelled";
+    }[];
   } | null;
   isOpen: boolean;
   onClose: () => void;
@@ -104,6 +112,52 @@ export default function ClassDetailsModal({ class_, isOpen, onClose }: Props) {
               </TableBody>
             </Table>
           </div>
+
+          {class_.appointments && class_.appointments.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Appointments</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Meeting</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {class_.appointments.map((apt) => (
+                    <TableRow key={apt.id}>
+                      <TableCell>{format(new Date(apt.date), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{apt.time}</TableCell>
+                      <TableCell>{apt.duration} minutes</TableCell>
+                      <TableCell>
+                        <Badge variant={apt.status === 'scheduled' ? 'secondary' : apt.status === 'completed' ? 'default' : 'destructive'}>
+                          {apt.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {apt.meetLink ? (
+                          <a
+                            href={apt.meetLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Video className="h-4 w-4" />
+                            Join
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Not available</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {class_.students && class_.students.length > 0 && (
             <div className="space-y-4">

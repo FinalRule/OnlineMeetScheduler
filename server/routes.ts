@@ -199,8 +199,10 @@ export function registerRoutes(app: Express): Server {
 
       const userClasses = await userClassesQuery;
 
-      const classesWithStudents = await Promise.all(
+      // Fetch additional data for each class
+      const classesWithDetails = await Promise.all(
         userClasses.map(async (cls) => {
+          // Get students
           const students = await db
             .select({
               id: users.id,
@@ -210,14 +212,29 @@ export function registerRoutes(app: Express): Server {
             .innerJoin(classStudents, eq(users.id, classStudents.studentId))
             .where(eq(classStudents.classId, cls.id));
 
+          // Get appointments
+          const classAppointments = await db
+            .select({
+              id: appointments.id,
+              date: appointments.date,
+              time: appointments.time,
+              duration: appointments.duration,
+              meetLink: appointments.meetLink,
+              status: appointments.status,
+            })
+            .from(appointments)
+            .where(eq(appointments.classId, cls.id))
+            .orderBy(appointments.date, appointments.time);
+
           return {
             ...cls,
             students,
+            appointments: classAppointments,
           };
         })
       );
 
-      res.json(classesWithStudents);
+      res.json(classesWithDetails);
     } catch (error) {
       console.error('Error fetching classes:', error);
       res.status(500).send("Failed to fetch classes");
@@ -305,7 +322,6 @@ export function registerRoutes(app: Express): Server {
 
     res.json(userAppointments);
   });
-
 
   // Create appointment with Google Meet integration
   app.post("/api/appointments", requireAuth, async (req, res) => {
