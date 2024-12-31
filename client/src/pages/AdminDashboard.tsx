@@ -187,11 +187,22 @@ export default function AdminDashboard() {
           credentials: "include",
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to create subject");
+        // First check if it's a server error
+        if (response.status >= 500) {
+          throw new Error(`Server error: ${response.statusText}`);
         }
 
+        // For client errors, try to get the error message
+        if (!response.ok) {
+          try {
+            const errorData = await response.text();
+            throw new Error(errorData || "Failed to create subject");
+          } catch (parseError) {
+            throw new Error("Failed to create subject");
+          }
+        }
+
+        // Only try to parse JSON for successful responses
         return response.json();
       } catch (error) {
         console.error('Error in subject mutation:', error);
