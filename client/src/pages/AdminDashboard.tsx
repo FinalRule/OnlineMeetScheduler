@@ -182,20 +182,50 @@ export default function AdminDashboard() {
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: SubjectFormData) => {
-      const formattedData = parseSubjectFormData(data);
-      const response = await fetch("/api/subjects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formattedData),
-        credentials: "include",
-      });
+      try {
+        // Process the form data
+        const durations = data.durations
+          .split(',')
+          .map(d => d.trim())
+          .filter(Boolean)
+          .map(d => parseInt(d, 10))
+          .filter(d => !isNaN(d));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+        const pricePerDuration = data.pricePerDuration
+          .split(',')
+          .reduce((acc: Record<string, number>, curr) => {
+            const [duration, price] = curr.split(':').map(s => s.trim());
+            if (duration && price && !isNaN(parseInt(price, 10))) {
+              acc[duration] = parseInt(price, 10);
+            }
+            return acc;
+          }, {});
+
+        const formattedData = {
+          name: data.name,
+          sessionsPerWeek: parseInt(data.sessionsPerWeek, 10),
+          durations,
+          pricePerDuration,
+          isActive: true
+        };
+
+        const response = await fetch("/api/subjects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formattedData),
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
@@ -217,29 +247,7 @@ export default function AdminDashboard() {
 
   const handleSubjectSubmit = addSubjectForm.handleSubmit(async (data) => {
     try {
-      const formattedData = {
-        name: data.name,
-        sessionsPerWeek: parseInt(data.sessionsPerWeek, 10),
-        durations: data.durations
-          .split(',')
-          .map(d => d.trim())
-          .filter(Boolean)
-          .map(d => parseInt(d, 10))
-          .filter(d => !isNaN(d)),
-        pricePerDuration: data.pricePerDuration
-          .split(',')
-          .reduce((acc: Record<string, number>, curr) => {
-            const [duration, price] = curr.split(':').map(s => s.trim());
-            const parsedPrice = parseInt(price, 10);
-            if (duration && !isNaN(parsedPrice)) {
-              acc[duration] = parsedPrice;
-            }
-            return acc;
-          }, {}),
-        isActive: true
-      };
-
-      await addSubjectMutation.mutateAsync(formattedData);
+      await addSubjectMutation.mutateAsync(data);
     } catch (error) {
       console.error('Form submission error:', error);
     }
