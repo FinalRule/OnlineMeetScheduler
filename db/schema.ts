@@ -103,28 +103,12 @@ export const insertUserSchema = createInsertSchema(users, {
 
 export const selectUserSchema = createSelectSchema(users);
 
-export const insertSubjectSchema = createInsertSchema(subjects).extend({
+export const insertSubjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sessionsPerWeek: z.number().min(1, "Must have at least 1 session per week"),
-  durations: z.union([
-    z.string().transform(str => 
-      str.split(',')
-        .map(s => parseInt(s.trim()))
-        .filter(n => !isNaN(n))
-    ),
-    z.array(z.number())
-  ]),
-  pricePerDuration: z.union([
-    z.string().transform(str => {
-      try {
-        return JSON.parse(`{${str}}`);
-      } catch {
-        return {};
-      }
-    }),
-    z.record(z.string(), z.number())
-  ]),
-  isActive: z.boolean().optional().default(true),
+  durations: z.array(z.number()).default([]),
+  pricePerDuration: z.record(z.string(), z.number()).default({}),
+  isActive: z.boolean().default(true)
 });
 
 export const selectSubjectSchema = createSelectSchema(subjects);

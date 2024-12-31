@@ -108,24 +108,28 @@ const WEEKDAYS = [
 
 // Helper function to transform form data
 const parseSubjectFormData = (data: SubjectFormData) => {
+  // Parse durations into number array
   const durations = data.durations
     .split(',')
-    .map(d => parseInt(d.trim()))
+    .map(d => d.trim())
+    .filter(Boolean)
+    .map(d => parseInt(d, 10))
     .filter(d => !isNaN(d));
 
+  // Parse price per duration into Record<string, number>
   const pricePerDuration = data.pricePerDuration
     .split(',')
     .reduce((acc: Record<string, number>, curr) => {
       const [duration, price] = curr.split(':').map(s => s.trim());
-      if (duration && price) {
-        acc[duration] = parseInt(price);
+      if (duration && price && !isNaN(parseInt(price, 10))) {
+        acc[duration] = parseInt(price, 10);
       }
       return acc;
     }, {});
 
   return {
     name: data.name,
-    sessionsPerWeek: parseInt(data.sessionsPerWeek),
+    sessionsPerWeek: parseInt(data.sessionsPerWeek, 10),
     durations,
     pricePerDuration,
     isActive: true
