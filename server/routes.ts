@@ -169,8 +169,16 @@ export function registerRoutes(app: Express): Server {
           timePerDay: classes.timePerDay,
           durationPerDay: classes.durationPerDay,
           isActive: classes.isActive,
+          adminNotes: classes.adminNotes,
+          teacherNotes: classes.teacherNotes,
+          customHourPrice: classes.customHourPrice,
+          customTeacherSalary: classes.customTeacherSalary,
+          subjectName: subjects.name,
+          teacherName: users.name,
         })
-        .from(classes);
+        .from(classes)
+        .leftJoin(subjects, eq(classes.subjectId, subjects.id))
+        .leftJoin(users, eq(classes.teacherId, users.id));
 
       if (req.user?.role === "teacher") {
         userClassesQuery.where(eq(classes.teacherId, req.user.id));
@@ -190,7 +198,26 @@ export function registerRoutes(app: Express): Server {
       }
 
       const userClasses = await userClassesQuery;
-      res.json(userClasses);
+
+      const classesWithStudents = await Promise.all(
+        userClasses.map(async (cls) => {
+          const students = await db
+            .select({
+              id: users.id,
+              name: users.name,
+            })
+            .from(users)
+            .innerJoin(classStudents, eq(users.id, classStudents.studentId))
+            .where(eq(classStudents.classId, cls.id));
+
+          return {
+            ...cls,
+            students,
+          };
+        })
+      );
+
+      res.json(classesWithStudents);
     } catch (error) {
       console.error('Error fetching classes:', error);
       res.status(500).send("Failed to fetch classes");

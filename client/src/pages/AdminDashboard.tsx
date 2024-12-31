@@ -27,7 +27,8 @@ import { insertSubjectSchema } from "@db/schema";
 import type { InsertUser } from "@db/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import ClassDetailsModal from "@/components/modals/ClassDetailsModal";
+import { format } from 'date-fns';
 
 type Subject = {
   id: number;
@@ -49,6 +50,9 @@ type Class = {
   timePerDay: Record<string, string>;
   durationPerDay: Record<string, number>;
   isActive: boolean;
+  subjectName?: string; // Added
+  teacherName?: string; // Added
+
 };
 
 type User = {
@@ -101,6 +105,8 @@ export default function AdminDashboard() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [isEditSubjectModalOpen, setIsEditSubjectModalOpen] = useState(false);
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [isClassDetailsModalOpen, setIsClassDetailsModalOpen] = useState(false);
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -647,24 +653,39 @@ export default function AdminDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
                       <TableHead>Subject</TableHead>
+                      <TableHead>Teacher</TableHead>
                       <TableHead>Start Date</TableHead>
                       <TableHead>End Date</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {classes?.map((cls) => (
-                      <TableRow key={cls.id}>
-                        <TableCell>{cls.id}</TableCell>
+                      <TableRow
+                        key={cls.id}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() => {
+                          setSelectedClass(cls);
+                          setIsClassDetailsModalOpen(true);
+                        }}
+                      >
+                        <TableCell>{subjects?.find((s) => s.id === cls.subjectId)?.name}</TableCell>
+                        <TableCell>{users?.find((u) => u.id === cls.teacherId)?.name}</TableCell>
                         <TableCell>
-                          {subjects?.find((s) => s.id === cls.subjectId)?.name}
+                          {format(new Date(cls.startDate), 'MMM d, yyyy')}
                         </TableCell>
                         <TableCell>
-                          {new Date(cls.startDate).toLocaleDateString()}
+                          {format(new Date(cls.endDate), 'MMM d, yyyy')}
                         </TableCell>
                         <TableCell>
-                          {new Date(cls.endDate).toLocaleDateString()}
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            cls.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {cls.isActive ? "Active" : "Inactive"}
+                          </span>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -672,6 +693,14 @@ export default function AdminDashboard() {
                 </Table>
               </CardContent>
             </Card>
+            <ClassDetailsModal
+              class_={selectedClass}
+              isOpen={isClassDetailsModalOpen}
+              onClose={() => {
+                setIsClassDetailsModalOpen(false);
+                setSelectedClass(null);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="users">
