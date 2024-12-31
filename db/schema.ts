@@ -41,18 +41,21 @@ export const subjects = pgTable("subjects", {
   isActive: boolean("is_active").default(true),
 });
 
-// Update the subject schema to properly handle the form data
-export const insertSubjectSchema = createInsertSchema(subjects, {
+export const insertSubjectSchema = createInsertSchema(subjects).extend({
   name: z.string().min(1, "Name is required"),
   sessionsPerWeek: z.number().min(1, "Must have at least 1 session per week"),
   durations: z.union([
-    z.string().transform(val => val.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d))),
+    z.string().transform(str =>
+      str.split(',')
+         .map(s => parseInt(s.trim()))
+         .filter(n => !isNaN(n))
+    ),
     z.array(z.number())
   ]),
   pricePerDuration: z.union([
-    z.string().transform(val => {
+    z.string().transform(str => {
       try {
-        return JSON.parse(`{${val}}`);
+        return JSON.parse(`{${str}}`);
       } catch {
         return {};
       }

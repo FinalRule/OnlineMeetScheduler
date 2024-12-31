@@ -7,7 +7,6 @@ import { eq, and, inArray, or } from "drizzle-orm";
 import { createMeeting } from "./utils/google-meet";
 import { desc } from "drizzle-orm";
 import { z } from "zod";
-import { insertSubjectSchema } from "@db/schema";
 
 const updateProfileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -19,11 +18,10 @@ const updateProfileSchema = z.object({
 const insertSubjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sessionsPerWeek: z.number().int().min(0, "Sessions per week must be non-negative"),
-  durations: z.array(z.string()).default([]), //assuming durations are strings
-  pricePerDuration: z.object({}).default({}), //assuming pricePerDuration is an object
+  durations: z.array(z.string()).default([]), 
+  pricePerDuration: z.object({}).default({}), 
   isActive: z.boolean().default(true),
 });
-
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -61,35 +59,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error updating profile:', error);
       res.status(500).send("Failed to update profile");
-    }
-  });
-
-  // User routes
-  app.get("/api/users", requireAuth, async (req, res) => {
-    if (req.user?.role !== "admin") {
-      return res.status(403).send("Unauthorized");
-    }
-
-    try {
-      const allUsers = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          name: users.name,
-          role: users.role,
-          dateOfBirth: users.dateOfBirth,
-          nationality: users.nationality,
-          location: users.location,
-          baseSalaryPerHour: users.baseSalaryPerHour,
-          basePaymentPerHour: users.basePaymentPerHour,
-        })
-        .from(users)
-        .where(or(eq(users.role, "teacher"), eq(users.role, "student")));
-
-      res.json(allUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      res.status(500).send("Failed to fetch users");
     }
   });
 

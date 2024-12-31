@@ -109,16 +109,25 @@ export default function AdminDashboard() {
   const addClass = useForm<Class>();
 
   const addSubjectMutation = useMutation({
-    mutationFn: async (data: Subject) => {
-      const result = insertSubjectSchema.safeParse(data);
-      if (!result.success) {
-        throw new Error(result.error.issues.map(i => i.message).join(", "));
-      }
+    mutationFn: async (data: any) => {
+      const formData = {
+        ...data,
+        sessionsPerWeek: Number(data.sessionsPerWeek),
+        durations: typeof data.durations === 'string'
+          ? data.durations.split(',').map(Number)
+          : data.durations,
+        pricePerDuration: typeof data.pricePerDuration === 'string'
+          ? Object.fromEntries(data.pricePerDuration.split(',').map(item => {
+              const [key, value] = item.trim().split(':');
+              return [key.replace(/"/g, ''), Number(value.trim())];
+            }))
+          : data.pricePerDuration,
+      };
 
       const response = await fetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result.data),
+        body: JSON.stringify(formData),
         credentials: "include",
       });
 
