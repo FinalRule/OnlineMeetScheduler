@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, boolean, jsonb, timestamp, decimal } from "drizzle-orm/pg-core";
+import { relations, type InferModel } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 export const users = pgTable("users", {
@@ -105,7 +105,7 @@ export const selectUserSchema = createSelectSchema(users);
 
 export const insertSubjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  sessionsPerWeek: z.number().min(1, "Must have at least 1 session per week"),
+  sessionsPerWeek: z.coerce.number().min(1, "Must have at least 1 session per week"),
   durations: z.array(z.number()).default([]),
   pricePerDuration: z.record(z.string(), z.number()).default({}),
   isActive: z.boolean().default(true)

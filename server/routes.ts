@@ -102,14 +102,17 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // Validate input data
-      const result = insertSubjectSchema.safeParse({
+      // Convert the form data to match the schema
+      const formData = {
         name: req.body.name,
         sessionsPerWeek: Number(req.body.sessionsPerWeek),
-        durations: req.body.durations,
-        pricePerDuration: req.body.pricePerDuration,
-        isActive: req.body.isActive ?? true
-      });
+        durations: Array.isArray(req.body.durations) ? req.body.durations : [],
+        pricePerDuration: req.body.pricePerDuration || {},
+        isActive: true
+      };
+
+      // Validate input data
+      const result = insertSubjectSchema.safeParse(formData);
 
       if (!result.success) {
         return res.status(400).send(result.error.issues.map(i => i.message).join(", "));

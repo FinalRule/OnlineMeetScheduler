@@ -217,7 +217,29 @@ export default function AdminDashboard() {
 
   const handleSubjectSubmit = addSubjectForm.handleSubmit(async (data) => {
     try {
-      await addSubjectMutation.mutateAsync(data);
+      const formattedData = {
+        name: data.name,
+        sessionsPerWeek: parseInt(data.sessionsPerWeek, 10),
+        durations: data.durations
+          .split(',')
+          .map(d => d.trim())
+          .filter(Boolean)
+          .map(d => parseInt(d, 10))
+          .filter(d => !isNaN(d)),
+        pricePerDuration: data.pricePerDuration
+          .split(',')
+          .reduce((acc: Record<string, number>, curr) => {
+            const [duration, price] = curr.split(':').map(s => s.trim());
+            const parsedPrice = parseInt(price, 10);
+            if (duration && !isNaN(parsedPrice)) {
+              acc[duration] = parsedPrice;
+            }
+            return acc;
+          }, {}),
+        isActive: true
+      };
+
+      await addSubjectMutation.mutateAsync(formattedData);
     } catch (error) {
       console.error('Form submission error:', error);
     }
