@@ -150,21 +150,34 @@ export default function AdminDashboard() {
   const addSubjectMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
-        const formData = {
-          ...data,
-          sessionsPerWeek: Number(data.sessionsPerWeek),
-          durations: typeof data.durations === 'string'
-            ? data.durations.split(',').map((d: string) => Number(d.trim()))
-            : data.durations,
-          pricePerDuration: typeof data.pricePerDuration === 'string'
-            ? data.pricePerDuration.split(',').reduce((acc: Record<string, number>, item: string) => {
+        // Parse durations - handle empty or malformed input
+        const durations = typeof data.durations === 'string'
+          ? data.durations.split(',')
+              .map(d => d.trim())
+              .filter(Boolean)
+              .map(d => parseInt(d, 10))
+              .filter(d => !isNaN(d))
+          : [];
+
+        // Parse price per duration - handle empty or malformed input
+        const pricePerDuration = typeof data.pricePerDuration === 'string'
+          ? data.pricePerDuration.split(',')
+              .reduce((acc: Record<string, number>, item: string) => {
                 const [duration, price] = item.split(':').map(s => s.trim());
-                if (duration && price) {
-                  acc[duration.replace(/['"]/g, '')] = Number(price);
+                const parsedPrice = parseInt(price, 10);
+                if (duration && !isNaN(parsedPrice)) {
+                  acc[duration.replace(/['"]/g, '')] = parsedPrice;
                 }
                 return acc;
               }, {})
-            : data.pricePerDuration,
+          : {};
+
+        const formData = {
+          name: data.name,
+          sessionsPerWeek: parseInt(data.sessionsPerWeek, 10) || 1,
+          durations,
+          pricePerDuration,
+          isActive: true,
         };
 
         const response = await fetch("/api/subjects", {
@@ -175,13 +188,14 @@ export default function AdminDashboard() {
         });
 
         if (!response.ok) {
-          throw new Error(await response.text());
+          const errorText = await response.text();
+          throw new Error(errorText || "Failed to create subject");
         }
 
         return response.json();
       } catch (error) {
-        console.error('Error in mutation:', error);
-        throw error;
+        console.error('Error in subject mutation:', error);
+        throw error instanceof Error ? error : new Error('Failed to create subject');
       }
     },
     onSuccess: () => {
