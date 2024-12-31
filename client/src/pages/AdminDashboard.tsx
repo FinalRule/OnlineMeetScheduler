@@ -195,32 +195,21 @@ export default function AdminDashboard() {
 
   const addSubjectMutation = useMutation({
     mutationFn: async (data: SubjectFormData) => {
-      try {
-        const formattedData = parseSubjectFormData(data);
+      const formattedData = parseSubjectFormData(data);
 
-        const response = await fetch("/api/subjects", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formattedData),
-          credentials: "include",
-        });
+      const response = await fetch("/api/subjects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formattedData),
+        credentials: "include",
+      });
 
-        if (response.status >= 500) {
-          throw new Error("Internal server error");
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to create subject");
-        }
-
-        return await response.json();
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(error.message);
-        }
-        throw new Error("An unexpected error occurred");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
@@ -230,25 +219,22 @@ export default function AdminDashboard() {
         description: "Subject added successfully",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create subject";
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
-  const handleSubjectSubmit = addSubjectForm.handleSubmit((data) => {
+  const handleSubjectSubmit = addSubjectForm.handleSubmit(async (data) => {
     try {
-      return addSubjectMutation.mutateAsync(data);
+      await addSubjectMutation.mutateAsync(data);
     } catch (error) {
+      // Error will be handled by onError callback
       console.error('Form submission error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit form",
-        variant: "destructive",
-      });
     }
   });
 
