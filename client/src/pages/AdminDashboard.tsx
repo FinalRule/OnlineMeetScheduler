@@ -107,6 +107,7 @@ export default function AdminDashboard() {
   const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [isClassDetailsModalOpen, setIsClassDetailsModalOpen] = useState(false);
+  const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -226,6 +227,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
       addClass.reset();
       setSelectedWeekdays([]);
+      setIsAddClassModalOpen(false);
       toast({
         title: "Success",
         description: "Class added successfully",
@@ -443,7 +445,7 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Classes</CardTitle>
-                <Dialog>
+                <Dialog open={isAddClassModalOpen} onOpenChange={setIsAddClassModalOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -670,8 +672,8 @@ export default function AdminDashboard() {
                           setIsClassDetailsModalOpen(true);
                         }}
                       >
-                        <TableCell>{subjects?.find((s) => s.id === cls.subjectId)?.name}</TableCell>
-                        <TableCell>{users?.find((u) => u.id === cls.teacherId)?.name}</TableCell>
+                        <TableCell>{cls.subjectName}</TableCell>
+                        <TableCell>{cls.teacherName}</TableCell>
                         <TableCell>
                           {format(new Date(cls.startDate), 'MMM d, yyyy')}
                         </TableCell>

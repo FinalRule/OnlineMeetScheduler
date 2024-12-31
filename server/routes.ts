@@ -212,24 +212,9 @@ export function registerRoutes(app: Express): Server {
             .innerJoin(classStudents, eq(users.id, classStudents.studentId))
             .where(eq(classStudents.classId, cls.id));
 
-          // Get appointments
-          const classAppointments = await db
-            .select({
-              id: appointments.id,
-              date: appointments.date,
-              time: appointments.time,
-              duration: appointments.duration,
-              meetLink: appointments.meetLink,
-              status: appointments.status,
-            })
-            .from(appointments)
-            .where(eq(appointments.classId, cls.id))
-            .orderBy(appointments.date, appointments.time);
-
           return {
             ...cls,
             students,
-            appointments: classAppointments,
           };
         })
       );
