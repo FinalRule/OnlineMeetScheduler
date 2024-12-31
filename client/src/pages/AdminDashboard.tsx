@@ -194,16 +194,13 @@ export default function AdminDashboard() {
 
         // For client errors, try to get the error message
         if (!response.ok) {
-          try {
-            const errorData = await response.text();
-            throw new Error(errorData || "Failed to create subject");
-          } catch (parseError) {
-            throw new Error("Failed to create subject");
-          }
+          const errorData = await response.text();
+          throw new Error(errorData || "Failed to create subject");
         }
 
         // Only try to parse JSON for successful responses
-        return response.json();
+        const result = await response.json();
+        return result;
       } catch (error) {
         console.error('Error in subject mutation:', error);
         throw error instanceof Error ? error : new Error('Failed to create subject');
@@ -224,6 +221,20 @@ export default function AdminDashboard() {
         variant: "destructive",
       });
     },
+  });
+
+  // Update the form submission handler
+  const handleSubjectSubmit = addSubjectForm.handleSubmit((data) => {
+    try {
+      return addSubjectMutation.mutateAsync(data as Subject);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit form",
+        variant: "destructive",
+      });
+    }
   });
 
   const addClassMutation = useMutation({
@@ -351,9 +362,7 @@ export default function AdminDashboard() {
                     </DialogHeader>
                     <Form {...addSubjectForm}>
                       <form
-                        onSubmit={addSubjectForm.handleSubmit((data) =>
-                          addSubjectMutation.mutateAsync(data as Subject)
-                        )}
+                        onSubmit={handleSubjectSubmit}
                         className="space-y-4"
                       >
                         <FormField
