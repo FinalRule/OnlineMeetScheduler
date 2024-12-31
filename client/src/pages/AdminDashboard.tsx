@@ -192,18 +192,20 @@ export default function AdminDashboard() {
           throw new Error(`Server error: ${response.statusText}`);
         }
 
-        // For client errors, try to get the error message
+        // For client errors, try to get the error message from text response
         if (!response.ok) {
-          const errorData = await response.text();
-          throw new Error(errorData || "Failed to create subject");
+          const errorText = await response.text();
+          throw new Error(errorText || "Failed to create subject");
         }
 
         // Only try to parse JSON for successful responses
-        const result = await response.json();
-        return result;
-      } catch (error) {
+        return await response.json();
+      } catch (error: unknown) {
         console.error('Error in subject mutation:', error);
-        throw error instanceof Error ? error : new Error('Failed to create subject');
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        }
+        throw new Error('Failed to create subject');
       }
     },
     onSuccess: () => {
@@ -223,15 +225,15 @@ export default function AdminDashboard() {
     },
   });
 
-  // Update the form submission handler
+  // Update the form submission handler with proper error handling
   const handleSubjectSubmit = addSubjectForm.handleSubmit((data) => {
     try {
-      return addSubjectMutation.mutateAsync(data as Subject);
+      return addSubjectMutation.mutateAsync(data);
     } catch (error) {
       console.error('Form submission error:', error);
       toast({
         title: "Error",
-        description: "Failed to submit form",
+        description: error instanceof Error ? error.message : "Failed to submit form",
         variant: "destructive",
       });
     }
